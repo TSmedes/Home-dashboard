@@ -1,0 +1,17 @@
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Secrets and live state — never commit
+.env
+.env.*
+!.env.example
+config/config.yaml
+data/*
+!data/.gitkeep
+
+# Throwaway spike output
+spikes/out/
+
+.DS_Store
+*.log

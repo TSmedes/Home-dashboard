@@ -1,0 +1,439 @@
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import type { ConfigChange, DashboardConfig, Place } from "@home-dash/shared";
+import { useDashboard } from "../lib/dashboard.js";
+import { useNow } from "../lib/useNow.js";
+import { CommitInput, Segmented, Switch } from "./controls.js";
+import { ago, overrideSummary, profileLabel, scheduleChanges } from "./model.js";
+
+/** Settings closes itself after this long untouched, so the wall never stays on it. */
+const IDLE_CLOSE_MS = 120_000;
+
+const WIDGET_NAMES: Record<string, string> = {
+  clock: "Clock",
+  weather: "Weather",
+  calendar: "Calendar",
+  tasks: "Tasks",
+  lights: "Lights",
+};
+
+const SOURCE_NAMES: Record<string, string> = {
+  weather: "Weather",
+  calendar: "Calendar",
+  tasks: "TickTick",
+  lights: "Lights",
+};
+
+type Notice = { text: string; tone: "ok" | "error" } | null;
+type Save = (changes: ConfigChange[], done?: string) => Promise<void>;
+
+async function send(method: string, url: string, body?: unknown): Promise<unknown> {
+  const response = await fetch(url, {
+    method,
+    ...(body === undefined ? {} : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
+  });
+  const payload = (await response.json().catch(() => ({}))) as { error?: string };
+  if (!response.ok) throw new Error(payload.error ?? `the server returned ${response.status}`);
+  return payload;
+}
+
+export function SettingsPanel({ onClose }: { onClose: () => void }) {
+  const { config, activeProfile, override, connection } = useDashboard();
+  const panel = useRef<HTMLDivElement>(null);
+  const [notice, setNotice] = useState<Notice>(null);
+
+  // Any touch, key or scroll inside settings restarts the idle countdown.
+  useEffect(() => {
+    const element = panel.current;
+    if (!element) return;
+    let timer = window.setTimeout(onClose, IDLE_CLOSE_MS);
+    const reset = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(onClose, IDLE_CLOSE_MS);
+    };
+    const events = ["pointerdown", "keydown", "input", "scroll"] as const;
+    for (const type of events) element.addEventListener(type, reset, { capture: true, passive: true });
+    return () => {
+      window.clearTimeout(timer);
+      for (const type of events) element.removeEventListener(type, reset, { capture: true });
+    };
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), notice.tone === "error" ? 6000 : 2500);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  const save: Save = useCallback(async (changes, done = "Saved") => {
+    if (changes.length === 0) return;
+    try {
+      await send("PATCH", "/api/config", { changes });
+      setNotice({ text: done, tone: "ok" });
+    } catch (cause) {
+      setNotice({ text: `Not saved: ${cause instanceof Error ? cause.message : String(cause)}`, tone: "error" });
+      throw cause;
+    }
+  }, []);
+
+  if (!config || !activeProfile) return null;
+
+  return (
+    <div className="settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" ref={panel}>
+      <header className="settings__bar">
+        <h1 className="settings__title" id="settings-title">
+          Settings
+        </h1>
+        <p className="settings__notice" role="status" data-tone={notice?.tone}>
+          {notice?.text}
+        </p>
+        <button type="button" className="button button--primary" onClick={onClose}>
+          Done
+        </button>
+      </header>
+
+      <div className="settings__scroll">
+        <div className="settings__column">
+          <ProfileSection config={config} active={activeProfile} override={override} setNotice={setNotice} />
+          <ScheduleSection config={config} save={save} setNotice={setNotice} />
+          <LocationSection config={config} save={save} />
+          {config.lights.length > 0 && <LightsSection config={config} save={save} />}
+          <WidgetsSection config={config} active={activeProfile} save={save} />
+          <StatusSection connection={connection} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="settings__section">
+      <h2 className="settings__heading">{title}</h2>
+      <div className="settings__card">{children}</div>
+    </section>
+  );
+}
+
+function Row({ label, detail, children }: { label: string; detail?: string; children: React.ReactNode }) {
+  return (
+    <div className="settings__row">
+      <span className="settings__label">
+        {label}
+        {detail && <span className="settings__detail">{detail}</span>}
+      </span>
+      <span className="settings__control">{children}</span>
+    </div>
+  );
+}
+
+function ProfileSection({
+  config,
+  active,
+  override,
+  setNotice,
+}: {
+  config: DashboardConfig;
+  active: string;
+  override: ReturnType<typeof useDashboard>["override"];
+  setNotice: (notice: Notice) => void;
+}) {
+  const now = useNow();
+  const [busy, setBusy] = useState(false);
+
+  const act = async (method: "POST" | "DELETE", body?: unknown) => {
+    setBusy(true);
+    try {
+      await send(method, "/api/profile/override", body);
+    } catch (cause) {
+      setNotice({ text: `Couldn't switch: ${cause instanceof Error ? cause.message : String(cause)}`, tone: "error" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Section title="Night mode">
+      <div className="settings__lead">
+        <p>{overrideSummary(override, active, now, config.location.timezone, config.units.clock)}</p>
+        <div className="settings__actions">
+          {override ? (
+            <button type="button" className="button button--primary" disabled={busy} onClick={() => act("DELETE")}>
+              Back to schedule
+            </button>
+          ) : (
+            Object.keys(config.profiles)
+              .filter((profile) => profile !== active)
+              .map((profile) => (
+                <button
+                  key={profile}
+                  type="button"
+                  className="button button--primary"
+                  disabled={busy}
+                  onClick={() => act("POST", { profile })}
+                >
+                  Switch to {profile}
+                </button>
+              ))
+          )}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function ScheduleSection({
+  config,
+  save,
+  setNotice,
+}: {
+  config: DashboardConfig;
+  save: Save;
+  setNotice: (notice: Notice) => void;
+}) {
+  return (
+    <Section title="Schedule and display">
+      {Object.entries(config.profiles).map(([name, profile]) => (
+        <Row key={name} label={`${profileLabel(name)} starts`}>
+          <CommitInput
+            type="time"
+            label={`${profileLabel(name)} starts at`}
+            value={profile.schedule.from}
+            onCommit={(from) => {
+              try {
+                void save(scheduleChanges(config.profiles, name, from)).catch(() => {});
+              } catch (cause) {
+                setNotice({ text: cause instanceof Error ? cause.message : String(cause), tone: "error" });
+              }
+            }}
+          />
+        </Row>
+      ))}
+      <Row label="Clock">
+        <Segmented
+          label="Clock"
+          value={config.units.clock}
+          options={[
+            { value: "12h", label: "12-hour" },
+            { value: "24h", label: "24-hour" },
+          ]}
+          onChange={(clock) => void save([{ path: ["units", "clock"], value: clock }]).catch(() => {})}
+        />
+      </Row>
+      <Row label="Temperature">
+        <Segmented
+          label="Temperature"
+          value={config.units.temperature}
+          options={[
+            { value: "fahrenheit", label: "°F" },
+            { value: "celsius", label: "°C" },
+          ]}
+          onChange={(temperature) =>
+            void save([{ path: ["units", "temperature"], value: temperature }]).catch(() => {})
+          }
+        />
+      </Row>
+    </Section>
+  );
+}
+
+function LocationSection({ config, save }: { config: DashboardConfig; save: Save }) {
+  const [query, setQuery] = useState("");
+  const [places, setPlaces] = useState<Place[] | null>(null);
+  const [searched, setSearched] = useState("");
+  const [state, setState] = useState<"idle" | "searching" | "failed">("idle");
+
+  const search = async (event: FormEvent) => {
+    event.preventDefault();
+    const q = query.trim();
+    if (q.length < 2) return;
+    setState("searching");
+    try {
+      const { places: found } = (await send("GET", `/api/geocode?q=${encodeURIComponent(q)}`)) as { places: Place[] };
+      setPlaces(found);
+      setSearched(q);
+      setState("idle");
+    } catch {
+      setState("failed");
+    }
+  };
+
+  const pick = async (place: Place) => {
+    await save(
+      [
+        { path: ["location", "name"], value: place.label },
+        { path: ["location", "lat"], value: place.lat },
+        { path: ["location", "lon"], value: place.lon },
+        { path: ["location", "timezone"], value: place.timezone },
+      ],
+      `Location set to ${place.label}`,
+    ).catch(() => {});
+    setPlaces(null);
+    setQuery("");
+  };
+
+  return (
+    <Section title="Location">
+      <div className="settings__lead">
+        <p>
+          Weather and times are for <strong>{config.location.name}</strong>.
+        </p>
+        <form className="settings__search" onSubmit={search}>
+          <input
+            className="field"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search for a town"
+            aria-label="Search for a town"
+            enterKeyHint="search"
+          />
+          <button type="submit" className="button" disabled={state === "searching" || query.trim().length < 2}>
+            {state === "searching" ? "Searching" : "Search"}
+          </button>
+        </form>
+        {state === "failed" && <p className="settings__error">Couldn't search just now. Try again.</p>}
+      </div>
+      {places?.length === 0 && (
+        <p className="settings__empty">No places called “{searched}”. Try a nearby larger town.</p>
+      )}
+      {places?.map((place) => (
+        <button
+          key={`${place.lat},${place.lon}`}
+          type="button"
+          className="settings__place"
+          onClick={() => void pick(place)}
+        >
+          <span className="settings__label">
+            {place.label}
+            <span className="settings__detail">{place.detail}</span>
+          </span>
+          <span className="settings__choose">Use</span>
+        </button>
+      ))}
+    </Section>
+  );
+}
+
+function LightsSection({ config, save }: { config: DashboardConfig; save: Save }) {
+  return (
+    <Section title="Lights">
+      {config.lights.map((light) => (
+        <div className="settings__row" key={light.id}>
+          <span className="settings__grow">
+            <CommitInput
+              label={`Name for the bulb at ${light.host}`}
+              value={light.name}
+              onCommit={(name) =>
+                void save([{ path: ["lights", { id: light.id }, "name"], value: name }], `Renamed to ${name}`).catch(
+                  () => {},
+                )
+              }
+            />
+            <span className="settings__detail">{light.host}</span>
+          </span>
+          <span className="settings__control settings__control--labelled">
+            <span className="settings__detail">Show</span>
+            <Switch
+              checked={!light.hidden}
+              label={`Show ${light.name} on the dashboard`}
+              // Showing is the default, so it removes the key rather than writing hidden: false.
+              onChange={(show) => save([{ path: ["lights", { id: light.id }, "hidden"], value: show ? null : true }])}
+            />
+          </span>
+        </div>
+      ))}
+    </Section>
+  );
+}
+
+function WidgetsSection({ config, active, save }: { config: DashboardConfig; active: string; save: Save }) {
+  const names = Object.keys(config.profiles);
+  const [profile, setProfile] = useState(names.includes(active) ? active : names[0]!);
+  const widgets = config.profiles[profile]?.widgets ?? [];
+
+  return (
+    <Section title="Widgets">
+      {names.length > 1 && (
+        <div className="settings__lead">
+          <Segmented
+            label="Which screen"
+            value={profile}
+            options={names.map((name) => ({ value: name, label: `${profileLabel(name)} screen` }))}
+            onChange={setProfile}
+          />
+        </div>
+      )}
+      {widgets.map((widget) => {
+        const name = widget.title ?? WIDGET_NAMES[widget.type] ?? widget.type;
+        return (
+          <Row key={widget.id} label={name}>
+            <Switch
+              checked={widget.enabled}
+              label={`Show ${name} on the ${profile} screen`}
+              onChange={(enabled) =>
+                save([
+                  // On is the default, so switching back on removes the key.
+                  { path: ["profiles", profile, "widgets", { id: widget.id }, "enabled"], value: enabled ? null : false },
+                ])
+              }
+            />
+          </Row>
+        );
+      })}
+      <p className="settings__empty">
+        {widgets.some((w) => w.grid.share)
+          ? "Widgets in a shared row split its width, so switching one off widens the others. Anywhere else, a switched-off widget leaves its space empty."
+          : "A switched-off widget leaves its space empty; switching it back puts it where it was."}
+      </p>
+    </Section>
+  );
+}
+
+interface Health {
+  sources: { key: string; stale: boolean; fetchedAt: string | null; error: string | null }[];
+}
+
+function StatusSection({ connection }: { connection: ReturnType<typeof useDashboard>["connection"] }) {
+  const now = useNow(5_000);
+  const [health, setHealth] = useState<Health | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = () =>
+      send("GET", "/api/health")
+        .then((body) => !cancelled && (setHealth(body as Health), setFailed(false)))
+        .catch(() => !cancelled && setFailed(true));
+    void load();
+    const timer = window.setInterval(load, 5_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  return (
+    <Section title="Status">
+      <Row label="This screen">
+        <span className="status" data-ok={connection === "live"}>
+          {connection === "live" ? "Connected" : "Reconnecting"}
+        </span>
+      </Row>
+      {failed && <p className="settings__error">Couldn't reach the server for its status.</p>}
+      {health?.sources.map((source) => (
+        <Row
+          key={source.key}
+          label={SOURCE_NAMES[source.key] ?? source.key}
+          {...(source.error ? { detail: source.error } : {})}
+        >
+          <span className="status" data-ok={!source.stale}>
+            {source.error
+              ? "Update failed"
+              : source.fetchedAt
+                ? `Updated ${ago(source.fetchedAt, now)}`
+                : "Waiting for first update"}
+          </span>
+        </Row>
+      ))}
+    </Section>
+  );
+}

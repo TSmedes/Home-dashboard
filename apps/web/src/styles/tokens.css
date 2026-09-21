@@ -1,0 +1,75 @@
+/* ---------------------------------------------------------------------------
+   Design tokens.
+
+   Two accents, both semantic rather than decorative:
+     --lit  amber  "this is on / this is happening now"  (a lit bulb, an event in progress)
+     --wet  blue   water                                  (rain probability, precipitation)
+
+   Day and night are two designs, not one design with inverted colours. Night is
+   near-monochrome and deliberately dim: a person reading this at 3am in a dark
+   hallway should not be dazzled, so night ink is muted sage, never white.
+--------------------------------------------------------------------------- */
+
+@font-face {
+  font-family: "Archivo";
+  src: url("/fonts/archivo-variable.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Newsreader";
+  src: url("/fonts/newsreader-variable.woff2") format("woff2-variations");
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+:root {
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-text: "Newsreader", Georgia, "Times New Roman", serif;
+
+  /* Major-third scale. Sized for a 7.9" panel read from across a room. */
+  --size-xs: 0.8125rem;
+  --size-sm: 0.9375rem;
+  --size-base: 1.0625rem;
+  --size-md: 1.3125rem;
+  --size-lg: 1.6875rem;
+  --size-xl: 2.125rem;
+  --size-2xl: 2.75rem;
+  --size-display: 4rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  --radius: 3px;
+  --edge-width: 1px;
+
+  --ground: #edefea;
+  --surface: #ffffff;
+  --edge: #dde1da;
+  --ink: #1b2a24;
+  --ink-2: #5a6b63;
+  --ink-3: #7f8b84;
+  --lit: #e8a33d;
+  --wet: #3e7ca6;
+  --warn: #b3472f;
+  --press: rgba(27, 42, 36, 0.07);
+}
+
+:root[data-theme="dark"] {
+  --ground: #0e1412;
+  --surface: #151d1a;
+  --edge: #1f2a26;
+  --ink: #8fa39a;
+  --ink-2: #798782;
+  --ink-3: #606a66;
+  --lit: #b8823a;
+  --wet: #466c86;
+  --warn: #ac786d;
+  --press: rgba(143, 163, 154, 0.09);
+}

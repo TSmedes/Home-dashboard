@@ -1,0 +1,26 @@
+services:
+  home-dash:
+    build: .
+    image: home-dash:latest
+    container_name: home-dash
+    restart: unless-stopped
+
+    ports:
+      - "8080:8080"
+
+    # Optional. The dashboard runs without it; widgets that need credentials
+    # report "not connected yet" until you add them.
+    env_file:
+      - path: .env
+        required: false
+
+    volumes:
+      # Your settings, editable from the host. Changes reload live.
+      - ./config:/app/config
+      # SQLite: OAuth tokens and the cache that repopulates the screen on boot.
+      - ./data:/app/data
+
+    # Kasa bulbs work fine on the default bridge network as long as each bulb's
+    # address is listed in config.yaml. Only Kasa's broadcast *discovery* needs
+    # host networking, and the setup wizard runs that on the host instead.
+    # network_mode: host

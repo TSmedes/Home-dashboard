@@ -1,0 +1,1196 @@
+/* ---------------------------------------------------------------------------
+   Layout.
+
+   No card kit: widgets are not identical rounded boxes with identical shadows.
+   A quiet surface with a 3px radius and a hairline edge is the default, and the
+   clock deliberately has none of it - sitting directly on the background is
+   what makes it read as the primary object on the wall. On a 7.9" panel that
+   restraint is functional as well as aesthetic; card chrome would eat around a
+   seventh of the usable area.
+--------------------------------------------------------------------------- */
+
+.dashboard {
+  height: 100%;
+  padding: var(--space-4);
+  padding: max(var(--space-4), env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right))
+    max(var(--space-4), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-4);
+  height: 100%;
+}
+
+.grid__cell {
+  /* Both are required or a long task title will stretch its column. */
+  min-width: 0;
+  min-height: 0;
+  container-type: size;
+}
+
+/* A shared row: whichever of its widgets are switched on split the width. */
+.grid__band {
+  display: flex;
+  gap: var(--space-4);
+  min-width: 0;
+  min-height: 0;
+}
+
+.grid__band > .grid__cell {
+  flex: 1 1 0;
+}
+
+.widget {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.surface {
+  background: var(--surface);
+  border: var(--edge-width) solid var(--edge);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+}
+
+.widget__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.widget__title {
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: var(--size-md);
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+/* Staleness is stated, never hidden: the time shown is the last moment this
+   number was actually true. */
+.widget__stale {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--size-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.widget__stale-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warn);
+}
+
+.widget-message {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  justify-content: center;
+  height: 100%;
+  color: var(--ink-2);
+}
+
+.widget-message p {
+  margin: 0;
+}
+
+.widget-message__detail {
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+  color: var(--ink-3);
+}
+
+/* --- Clock ---------------------------------------------------------------- */
+
+.clock {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+}
+
+.clock__time {
+  font-family: var(--font-display);
+  font-size: 4rem;
+  font-size: min(26cqw, 38cqh);
+  font-stretch: 112%;
+  font-weight: 440;
+  letter-spacing: -0.025em;
+  line-height: 0.92;
+  color: var(--ink);
+}
+
+.clock__meridiem {
+  font-size: 0.26em;
+  font-stretch: 100%;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-3);
+  margin-left: 0.18em;
+}
+
+.clock__date {
+  font-family: var(--font-text);
+  font-size: 1.25rem;
+  font-size: clamp(1rem, 7cqh, 2.1rem);
+  font-weight: 400;
+  color: var(--ink-2);
+  margin-top: 0.35em;
+}
+
+.clock--xl {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.clock--xl .clock__time {
+  font-size: 9rem;
+  font-size: min(22cqw, 55cqh);
+  font-weight: 380; /* lighter as it grows, so it does not shout at 3am */
+  font-stretch: 108%;
+}
+
+.clock--xl .clock__date {
+  font-size: clamp(1.1rem, 6cqh, 2.4rem);
+  color: var(--ink-2);
+}
+
+/* --- Weather -------------------------------------------------------------- */
+
+.weather {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.weather__now {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.weather__icon {
+  display: flex;
+  flex: none;
+}
+
+.weather__reading {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.weather__temp {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 17cqh, 3.4rem);
+  font-stretch: 108%;
+  font-weight: 460;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.weather__degree {
+  font-size: 0.42em;
+  font-weight: 500;
+  color: var(--ink-3);
+  margin-left: 0.1em;
+}
+
+.weather__label {
+  font-family: var(--font-text);
+  font-size: var(--size-base);
+  color: var(--ink-2);
+  margin-top: 0.15em;
+}
+
+.weather__range {
+  display: flex;
+  gap: var(--space-4);
+  margin: 0 0 0 auto;
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+}
+
+.weather__range div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.weather__range dt {
+  color: var(--ink-3);
+  font-size: var(--size-xs);
+}
+
+.weather__range dd {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 500;
+  font-size: var(--size-md);
+}
+
+/* The hourly strip leads with rain probability rather than temperature,
+   because in the Cascade foothills that is the question being asked. */
+.weather__strip {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 0;
+  flex: 1;
+}
+
+.weather__hour {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  min-width: 0;
+}
+
+.weather__hour-temp {
+  font-family: var(--font-display);
+  font-size: var(--size-xs);
+  color: var(--ink-2);
+}
+
+/* A baseline rule rather than a filled track: an empty column then reads as
+   "no rain", where a tinted block read as a full bar. */
+.weather__track {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  max-width: 22px;
+  height: clamp(16px, 20cqh, 42px);
+  border-bottom: var(--edge-width) solid var(--edge);
+}
+
+.weather__bar {
+  width: 100%;
+  min-height: 0;
+  border-radius: 1px;
+  background: var(--wet);
+}
+
+.weather__hour-label {
+  font-family: var(--font-display);
+  font-size: var(--size-xs);
+  color: var(--ink-3);
+}
+
+.weather__summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0;
+  padding-top: var(--space-3);
+  border-top: var(--edge-width) solid var(--edge);
+  font-family: var(--font-text);
+  font-size: var(--size-base);
+  color: var(--ink-2);
+}
+
+.weather__chance {
+  color: var(--wet);
+  font-weight: 600;
+}
+
+.weather__sun {
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.weather--compact {
+  justify-content: center;
+}
+
+/* --- Whole-screen states -------------------------------------------------- */
+
+.boot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.boot__headline {
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: var(--size-lg);
+  color: var(--ink);
+}
+
+.boot__detail {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+  color: var(--ink-3);
+}
+
+/* Quiet, permanent, and only present while the stream is down. */
+.connection {
+  position: fixed;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--warn);
+}
+
+/* --- Lights ---------------------------------------------------------------
+   Amber is the semantic accent for "on": a lit bulb reads as lit, and the
+   same colour marks an event happening now elsewhere on the dashboard.
+--------------------------------------------------------------------------- */
+
+.lights {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.light {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.light__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 44px; /* thumb-sized, per Apple's touch guidance */
+  text-align: left;
+  border-radius: var(--radius);
+}
+
+.light__toggle:active:not(:disabled) {
+  background: var(--press);
+}
+
+.light__toggle:disabled {
+  cursor: default;
+}
+
+/* Hollow when off, filled and haloed when on - readable at a glance and
+   without relying on colour alone. */
+.light__bulb {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--ink-3);
+  border-radius: 50%;
+  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.light[data-on="true"] .light__bulb {
+  background: var(--lit);
+  border-color: var(--lit);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--lit) 22%, transparent);
+}
+
+.light[data-reachable="false"] {
+  opacity: 0.55;
+}
+
+.light__name {
+  font-family: var(--font-text);
+  font-size: var(--size-md);
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.light__dim {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-left: calc(15px + var(--space-3));
+}
+
+.light__dim input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  height: 44px; /* the touch target, not the visible track */
+  margin: 0;
+  background: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.light__dim input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--edge);
+}
+
+.light__dim input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -9px;
+  border: none;
+  border-radius: 50%;
+  background: var(--lit);
+}
+
+.light__dim input[type="range"]::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--edge);
+}
+
+.light__dim input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: var(--lit);
+}
+
+.light__dim input[type="range"]:disabled::-webkit-slider-thumb {
+  background: var(--ink-3);
+}
+
+.light__dim input[type="range"]:disabled::-moz-range-thumb {
+  background: var(--ink-3);
+}
+
+.light__percent {
+  min-width: 3.4em;
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+  text-align: right;
+  color: var(--ink-2);
+}
+
+.light__offline {
+  padding-left: calc(15px + var(--space-3));
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+  color: var(--ink-3);
+}
+
+/* --- Agenda ---------------------------------------------------------------
+   Day headings carry the structure, so the widget needs no title of its own.
+   An event happening now takes the amber "now" accent, the same colour as a
+   lit bulb.
+--------------------------------------------------------------------------- */
+
+.agenda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.agenda__label {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink-2);
+}
+
+.agenda__items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.agenda__item {
+  display: grid;
+  grid-template-columns: 4.3em minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: baseline;
+  padding: var(--space-2) 0 var(--space-2) var(--space-3);
+  border-left: 3px solid transparent;
+}
+
+.agenda__item + .agenda__item {
+  border-top: var(--edge-width) solid var(--edge);
+}
+
+.agenda__item[data-now="true"] {
+  border-left-color: var(--lit);
+}
+
+.agenda__when {
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.agenda__item[data-now="true"] .agenda__when {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.agenda__until {
+  color: var(--ink-3);
+}
+
+.agenda__meridiem {
+  margin-left: 0.15em;
+  font-size: 0.82em;
+  color: var(--ink-3);
+}
+
+.agenda__what {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.agenda__title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-family: var(--font-text);
+  font-size: var(--size-md);
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.agenda__location {
+  margin-top: 2px;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: var(--size-xs);
+  color: var(--ink-3);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* --- Tasks ----------------------------------------------------------------
+   Ticking a task starts a short undo window rather than completing it at
+   once, because a wall panel gets brushed past. "Due today" takes the amber
+   "now" accent as a dot - amber is too light to carry text on white.
+--------------------------------------------------------------------------- */
+
+.tasks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  height: 100%;
+  min-height: 0;
+}
+
+.tasks__list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.task {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: var(--space-1);
+  align-items: start;
+  padding: var(--space-1) 0;
+}
+
+.task + .task {
+  border-top: var(--edge-width) solid var(--edge);
+}
+
+.task__check {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius);
+}
+
+.task__check:active {
+  background: var(--press);
+}
+
+.task__box {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--ink-3);
+  border-radius: 50%;
+  color: var(--surface);
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.task[data-priority="high"] .task__box {
+  border-color: var(--warn);
+}
+
+.task[data-finishing="true"] .task__box {
+  background: var(--ink-2);
+  border-color: var(--ink-2);
+}
+
+.task__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 9px; /* centres the first line on the 44px check */
+}
+
+.task__title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-family: var(--font-text);
+  font-size: var(--size-md);
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.task[data-finishing="true"] .task__title {
+  color: var(--ink-3);
+  text-decoration: line-through;
+}
+
+.task__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--size-xs);
+  color: var(--ink-3);
+}
+
+.task__due {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.task__due[data-tone="today"] {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.task__due[data-tone="today"]::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--lit);
+}
+
+.task__due[data-tone="overdue"] {
+  font-weight: 600;
+  color: var(--warn);
+}
+
+/* A small word, but a full-size target: the padding is the touch area. */
+.task__undo {
+  margin: -12px -14px;
+  padding: 12px 14px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.tasks__empty {
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: var(--size-md);
+  color: var(--ink-2);
+}
+
+.tasks__error {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+  color: var(--warn);
+}
+
+/* Lines up with the task titles rather than the check column. */
+.tasks__add {
+  align-self: flex-start;
+  min-height: 44px;
+  padding-left: calc(44px + var(--space-1));
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.tasks__add:active {
+  color: var(--ink);
+}
+
+.tasks__form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tasks__input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  font-family: var(--font-text);
+  font-size: var(--size-base); /* 17px: under 16px, iOS zooms the page on focus */
+  color: var(--ink);
+  background: var(--ground);
+  border: var(--edge-width) solid var(--edge);
+  border-radius: var(--radius);
+}
+
+.tasks__input::placeholder {
+  color: var(--ink-3);
+}
+
+.tasks__submit {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--surface);
+  background: var(--ink);
+  border-radius: var(--radius);
+}
+
+.tasks__submit:disabled {
+  opacity: 0.4;
+}
+
+.tasks__cancel {
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+  color: var(--ink-2);
+}
+
+/* Long lists scroll inside their tile. A hard cut through the last visible row
+   reads as a rendering fault; a short fade reads as "there is more below". */
+.tasks__list,
+.agenda {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+  padding-bottom: 24px;
+}
+
+/* --- Settings -------------------------------------------------------------
+   One quiet control on the dashboard, and a calm full-screen page behind it.
+   Colour is reserved for problems: a failed source gets the warning dot,
+   everything healthy stays neutral.
+--------------------------------------------------------------------------- */
+
+/* Top-left is empty background in both the day and night layouts. The safe
+   area keeps it clear of the status bar when run from the Home Screen. */
+.settings-button {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 4px);
+  left: 4px;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--ink-3);
+}
+
+.settings-button:active {
+  color: var(--ink);
+  background: var(--press);
+}
+
+.settings {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top, 0px);
+  background: var(--ground);
+}
+
+.settings__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  background: var(--surface);
+  border-bottom: var(--edge-width) solid var(--edge);
+}
+
+.settings__title {
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: var(--size-lg);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.settings__notice {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+  text-align: right;
+  color: var(--ink-2);
+}
+
+.settings__notice[data-tone="error"] {
+  color: var(--warn);
+}
+
+.settings__scroll {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.settings__column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-5) var(--space-6);
+}
+
+.settings__heading {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.settings__card {
+  background: var(--surface);
+  border: var(--edge-width) solid var(--edge);
+  border-radius: var(--radius);
+}
+
+.settings__card > * + * {
+  border-top: var(--edge-width) solid var(--edge);
+}
+
+.settings__row,
+.settings__lead,
+.settings__place,
+.settings__empty {
+  padding: var(--space-3) var(--space-4);
+}
+
+.settings__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 60px;
+}
+
+.settings__label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-family: var(--font-text);
+  font-size: var(--size-md);
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.settings__detail {
+  font-family: var(--font-display);
+  font-size: var(--size-xs);
+  line-height: 1.35;
+  color: var(--ink-3);
+}
+
+.settings__control {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.settings__grow {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.settings__lead p {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-text);
+  font-size: var(--size-md);
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.settings__lead p:last-child {
+  margin-bottom: 0;
+}
+
+.settings__actions,
+.settings__search {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.settings__search .field {
+  flex: 1;
+  min-width: 12em;
+}
+
+.settings__place {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: 60px;
+  text-align: left;
+}
+
+.settings__place:active {
+  background: var(--press);
+}
+
+.settings__choose {
+  flex: none;
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.settings__empty {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+  color: var(--ink-3);
+}
+
+.settings__error {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+  color: var(--warn);
+}
+
+.button {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface);
+  border: var(--edge-width) solid var(--edge);
+  border-radius: var(--radius);
+}
+
+.button--primary {
+  color: var(--surface);
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.button:disabled {
+  opacity: 0.45;
+}
+
+.button:active:not(:disabled) {
+  opacity: 0.85;
+}
+
+/* 17px text: anything under 16px and iOS zooms the page on focus. */
+.field {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  font-family: var(--font-text);
+  font-size: var(--size-base);
+  color: var(--ink);
+  background: var(--ground);
+  border: var(--edge-width) solid var(--edge);
+  border-radius: var(--radius);
+}
+
+.field--time {
+  width: auto;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The track is drawn inside a full 44px touch target. */
+.switch {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 54px;
+  height: 44px;
+}
+
+.switch::before {
+  content: "";
+  grid-area: 1 / 1;
+  width: 50px;
+  height: 30px;
+  border-radius: 15px;
+  background: var(--edge);
+  transition: background-color 160ms ease;
+}
+
+.switch__knob {
+  grid-area: 1 / 1;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1.5px var(--ink-3);
+  transform: translateX(-10px);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.switch[aria-checked="true"]::before {
+  background: var(--ink);
+}
+
+.switch[aria-checked="true"] .switch__knob {
+  box-shadow: none;
+  transform: translateX(10px);
+}
+
+.segmented {
+  display: inline-flex;
+  overflow: hidden;
+  border: var(--edge-width) solid var(--edge);
+  border-radius: var(--radius);
+}
+
+.segmented__option {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.segmented__option + .segmented__option {
+  border-left: var(--edge-width) solid var(--edge);
+}
+
+.segmented__option[aria-checked="true"] {
+  color: var(--surface);
+  background: var(--ink);
+}
+
+/* Healthy is neutral; only a problem is coloured. */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-display);
+  font-size: var(--size-sm);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+
+.status[data-ok="false"]::before {
+  background: var(--warn);
+}
+
+/* --- Small tiles ----------------------------------------------------------
+   A shared row can make a tile much smaller than its widget was designed
+   for (four across the night screen is about 236px wide and 230px tall).
+   Each tile is a size container, so widgets adapt to the space they get.
+--------------------------------------------------------------------------- */
+
+/* Too narrow for reading and range side by side: stack them rather than
+   let "High 69" run into the temperature. */
+@container (max-width: 280px) {
+  .weather__now {
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
+  }
+
+  .weather__range {
+    justify-content: flex-start;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .weather__range div {
+    align-items: flex-start;
+  }
+}
+
+/* Too short for a brightness slider per bulb: keep the on/off switches,
+   which are what a night screen is for. */
+@container (max-height: 300px) {
+  .light__dim {
+    display: none;
+  }
+
+  .lights {
+    gap: var(--space-1);
+  }
+}

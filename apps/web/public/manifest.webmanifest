@@ -1,0 +1,10 @@
+{
+  "name": "Home",
+  "short_name": "Home",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#EDEFEA",
+  "theme_color": "#EDEFEA",
+  "start_url": "/",
+  "icons": []
+}

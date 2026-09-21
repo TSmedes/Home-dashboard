@@ -1,0 +1,127 @@
+# ---------------------------------------------------------------------------
+# Home dashboard configuration.
+#
+# This file is the source of truth for layout and preferences. It is safe to
+# edit by hand; the settings screen (the gear, top left) edits only the values
+# you change and leaves the rest of this file exactly as written.
+# Changes are picked up live - no restart, no rebuild.
+#
+# Secrets do NOT belong here. API keys, OAuth credentials and the calendar's
+# secret iCal addresses go in .env.
+# ---------------------------------------------------------------------------
+
+location:
+  name: "Snoqualmie, WA"
+  lat: 47.5287
+  lon: -121.8254
+  timezone: "America/Los_Angeles" # drives the clock and the day/night switch
+
+units:
+  temperature: fahrenheit # fahrenheit | celsius
+  wind: mph               # mph | kmh | ms | kn
+  clock: 12h              # 12h | 24h
+
+server:
+  port: 8080
+
+# How often each source is polled, in seconds.
+refresh:
+  weather: 900  # 15 minutes
+  calendar: 300 # 5 minutes
+  tasks: 120
+  lights: 30
+
+# Which calendars appear is set by the secret iCal addresses in .env
+# (CALENDAR_ICAL_URLS), not here - each address is a credential.
+calendar:
+  daysAhead: 7
+
+# Tasks are read from, and quick-added to, this TickTick list. Who each task is
+# assigned to comes from the list's members in TickTick; nothing to fill in.
+ticktick:
+  listName: "🏡To-Do"
+
+# Kasa bulbs. Reserve a static IP for each in your router: container networking
+# cannot use Kasa's broadcast discovery, so the address must be written down.
+# Add hidden: true to keep a bulb off the dashboard (settings does this for you).
+lights: []
+# lights:
+#   - { id: living, name: "Living Room", host: 192.168.1.50 }
+#   - { id: bedroom, name: "Bedroom", host: 192.168.1.51 }
+
+# ---------------------------------------------------------------------------
+# Profiles. Each is an independent dashboard - its own widgets, layout and
+# theme - and the schedule decides which one is showing. A window whose start
+# is later than its end wraps past midnight.
+#
+# Layout is a 12-column grid. `col` and `row` are 1-based; spans default to 1.
+# `enabled: false` switches a widget off and leaves its space empty.
+# ---------------------------------------------------------------------------
+profiles:
+  # The daytime dashboard: everything on screen.
+  day:
+    schedule: { from: "06:30", to: "21:30" }
+    theme: light
+    widgets:
+      - id: clock
+        type: clock
+        grid: { col: 1, row: 1, colSpan: 4, rowSpan: 2 }
+
+      - id: weather
+        type: weather
+        grid: { col: 5, row: 1, colSpan: 8, rowSpan: 2 }
+
+      - id: agenda
+        type: calendar
+        grid: { col: 1, row: 3, colSpan: 5, rowSpan: 4 }
+        options: { days: 3 }
+
+      # Ticking a task gives four seconds to undo before TickTick hears about
+      # it. For a "my tasks" view, add: options: { assignee: you@example.com }
+      # (a TickTick username). readOnly: true hides the add-a-task control.
+      - id: todo
+        type: tasks
+        title: "🏡 To-Do"
+        grid: { col: 6, row: 3, colSpan: 4, rowSpan: 4 }
+
+      - id: lights
+        type: lights
+        title: "Lights"
+        grid: { col: 10, row: 3, colSpan: 3, rowSpan: 4 }
+
+  # The night dashboard: a big clock you can read from across a dark room.
+  night:
+    schedule: { from: "21:30", to: "06:30" }
+    theme: dark
+    widgets:
+      - id: clock
+        type: clock
+        grid: { col: 1, row: 1, colSpan: 12, rowSpan: 4 }
+        options: { size: xl, showSeconds: false }
+
+      # The bottom row is shared: whichever of these are switched on split it
+      # evenly, so turning one on or off in settings never leaves a gap.
+      - id: weather
+        type: weather
+        grid: { row: 5, rowSpan: 2, share: true }
+        options: { compact: true }
+
+      # Two days, so it reads correctly either side of midnight: late in the
+      # evening it shows the rest of today and tomorrow; after midnight "today"
+      # has already become the new day.
+      - id: agenda
+        type: calendar
+        grid: { row: 5, rowSpan: 2, share: true }
+        options: { days: 2 }
+
+      - id: todo
+        type: tasks
+        title: "🏡 To-Do"
+        enabled: false
+        grid: { row: 5, rowSpan: 2, share: true }
+
+      - id: lights
+        type: lights
+        title: "Lights"
+        enabled: false
+        grid: { row: 5, rowSpan: 2, share: true }

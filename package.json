@@ -1,0 +1,31 @@
+{
+  "name": "home-dash",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Self-hosted home dashboard / kiosk for a wall-mounted iPad",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n shared,server,web -c gray,blue,magenta \"npm:dev:shared\" \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "npm run build --workspace=@home-dash/shared && npm run dev --workspace=@home-dash/server",
+    "dev:web": "npm run dev --workspace=@home-dash/web",
+    "build": "npm run build --workspace=@home-dash/shared && npm run build --workspace=@home-dash/web && npm run build --workspace=@home-dash/server",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b packages/shared apps/server && tsc --noEmit -p apps/web",
+    "setup": "bash scripts/setup.sh",
+    "dev:shared": "npm run dev --workspace=@home-dash/shared",
+    "find-kasa": "node scripts/find-kasa.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}

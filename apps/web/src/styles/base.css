@@ -1,0 +1,76 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden; /* a wall panel never scrolls */
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: var(--size-base);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+
+  /* Kiosk hardening: no text selection, no callout menus, no tap highlight,
+     no rubber-band scroll. A wall panel should feel like an appliance. */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+/* The single orchestrated moment: day and night cross-fade into each other. */
+body,
+.surface {
+  transition: background-color 800ms ease, color 800ms ease, border-color 800ms ease;
+}
+
+/* The page-wide user-select: none would otherwise stop iOS focusing a text
+   field at all - the quick-add box would take no typing. */
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* Visible focus for anyone driving this with a keyboard during setup. */
+:focus-visible {
+  outline: 2px solid var(--lit);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Numbers that must not jitter as they tick. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}

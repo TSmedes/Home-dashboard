@@ -1,0 +1,10 @@
+# Shell scripts and the Dockerfile run on Linux, so they must stay LF even when
+# checked out on Windows with core.autocrlf=true. A CRLF shebang in
+# docker-entrypoint.sh stops the container from starting at all.
+*.sh        text eol=lf
+Dockerfile  text eol=lf
+
+*.woff2     binary
+
+# iCalendar (RFC 5545) mandates CRLF line endings.
+*.ics       text eol=crlf
