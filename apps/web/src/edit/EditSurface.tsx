@@ -46,10 +46,20 @@ export function EditSurface() {
           <EditableGrid
             config={state.draft}
             widgets={widgets}
+            page={state.page}
             envelopes={envelopes}
             availableSources={availableSources}
             selected={state.selected}
             onSelect={api.select}
+            onChange={(change) =>
+              api.update((draft) => ({
+                ...draft,
+                profiles: {
+                  ...draft.profiles,
+                  [state.profileName]: { ...profile, widgets: change(profile.widgets) },
+                },
+              }))
+            }
           />
         )}
       </div>

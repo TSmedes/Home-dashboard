@@ -178,3 +178,66 @@
     transition: border-color 140ms ease, background-color 140ms ease;
   }
 }
+
+/* The drag handle.
+ *
+ * `touch-action: none` on the handle is the load-bearing line: without it
+ * Safari can decide partway through the gesture that it was really a scroll,
+ * and the tile drops wherever the finger happened to be. 44px of target, over
+ * the tile's own corner where it cannot cover anything worth reading. */
+.edit-tile__grip {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: grid;
+  place-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 22%);
+  cursor: grab;
+  touch-action: none;
+}
+
+.edit-tile__grip:active {
+  cursor: grabbing;
+}
+
+.edit-tile__grip:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* The tile being dragged rides above the rest, and thins a little so the drop
+   preview underneath it stays readable. The pointer stays with the handle
+   throughout regardless: the drag is running under pointer capture. */
+.edit-tile[data-dragging] {
+  z-index: 5;
+  opacity: 0.85;
+}
+
+.edit-tile[data-dragging] .edit-tile__body > * {
+  box-shadow: 0 12px 32px rgb(0 0 0 / 28%);
+}
+
+/* Where it would land: free, a trade with the tile already there, or nowhere. */
+.edit-preview {
+  pointer-events: none;
+  border-radius: var(--radius-tile);
+  border: 2px dashed var(--ink-3);
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+
+.edit-preview[data-drop="swap"] {
+  border-style: solid;
+  border-color: var(--wet);
+  background: color-mix(in srgb, var(--wet) 12%, transparent);
+}
+
+.edit-preview[data-drop="blocked"] {
+  border-color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+}
