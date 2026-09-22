@@ -289,6 +289,15 @@ export interface SystemNetwork {
 
 export type ContainerHealth = "healthy" | "unhealthy" | "starting" | null;
 
+/** A port the container publishes on the host, so it can be reached. */
+export interface ContainerPort {
+  /** The port on the Docker host, which is the one you type. */
+  host: number;
+  container: number;
+  /** "tcp" or "udp"; udp is worth saying out loud, tcp is assumed. */
+  protocol: string;
+}
+
 export interface ContainerStatus {
   name: string;
   image: string;
@@ -297,6 +306,10 @@ export interface ContainerStatus {
   /** Docker's own phrase, e.g. "Up 3 days (healthy)". */
   status: string;
   health: ContainerHealth;
+  /** Published ports, lowest first. Empty when nothing is published. */
+  ports: ContainerPort[];
+  /** com.docker.compose.project, which groups a stack's containers together. */
+  project: string | null;
 }
 
 export interface ServiceCheckResult {

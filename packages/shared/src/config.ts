@@ -107,8 +107,12 @@ export const LightSchema = z.object({
  * addresses are in CALENDAR_ICAL_URLS, because each address is a credential.
  */
 export const CalendarSchema = z.object({
-  /** How many days ahead the agenda covers. */
-  daysAhead: z.number().int().min(1).max(31).default(7),
+  /**
+   * How many days ahead the feed is fetched. The expanded month grid needs this
+   * to reach the end of next month, so its arrows never land on a month drawn
+   * with empty cells that would read as free days.
+   */
+  daysAhead: z.number().int().min(1).max(62).default(62),
 });
 
 const DateKeySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "must be a date written YYYY-MM-DD");

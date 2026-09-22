@@ -442,35 +442,210 @@
 
 /* --- Calendar --------------------------------------------------------------- */
 
-/* Columns rather than a grid, so a busy day does not leave holes beside a quiet one. */
-.cald {
-  display: block;
-  columns: 3 300px;
-  column-gap: var(--space-5);
+/* The month, with the day you tapped open beside it. */
+.calm {
+  display: grid;
+  grid-template-columns: minmax(0, 2.4fr) minmax(280px, 1fr);
+  gap: var(--space-5);
+  min-height: 0;
 }
 
-.cald__day {
-  break-inside: avoid;
-  margin-bottom: var(--space-5);
+.calm__month {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
   min-width: 0;
 }
 
-.cald__label {
+.calm__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.calm__title {
+  margin: 0;
+  font-size: var(--size-lg);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.calm__arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  font-size: var(--size-lg);
+  line-height: 1;
+  color: var(--ink-2);
+  background: var(--row);
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+/* Kept in place rather than hidden, so the month name does not shuffle sideways
+   at the ends of the range. */
+.calm__arrow:disabled {
+  color: var(--ink-3);
+  opacity: 0.35;
+  cursor: default;
+}
+
+.calm__weekdays,
+.calm__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.calm__weekday {
+  font-size: var(--size-xs);
+  font-weight: 650;
+  color: var(--ink-3);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.calm__grid {
+  flex: 1;
+  min-height: 0;
+  grid-auto-rows: minmax(0, 1fr);
+}
+
+.calm__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+  padding: 6px 8px;
+  font: inherit;
+  text-align: left;
+  background: var(--row);
+  border: 2px solid transparent;
+  border-radius: var(--radius-inner);
+  cursor: pointer;
+}
+
+/* The days either side of the month are shown for shape, not for reading. */
+.calm__cell[data-in-month="false"] {
+  background: transparent;
+}
+
+.calm__cell[data-in-month="false"] .calm__date {
+  color: var(--ink-3);
+  opacity: 0.55;
+}
+
+/* The feed starts today, so earlier cells hold nothing - said quietly, rather
+   than left looking like free days. */
+.calm__cell[data-past="true"] {
+  opacity: 0.5;
+}
+
+.calm__cell[data-selected="true"] {
+  border-color: var(--ink);
+}
+
+.calm__date {
+  font-size: var(--size-sm);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.calm__cell[data-today="true"] .calm__date {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  min-width: 26px;
+  height: 26px;
+  color: var(--now-ink);
+  background: var(--now-fill);
+  border-radius: var(--radius-pill);
+}
+
+.calm__chips {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.calm__chip {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  overflow: hidden;
+  font-size: var(--size-xs);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.calm__chip-title {
+  overflow: hidden;
+  font-weight: 600;
+  color: var(--ink);
+  text-overflow: ellipsis;
+}
+
+.calm__time {
+  color: var(--ink-3);
+}
+
+.calm__dot {
+  flex: none;
+  align-self: center;
+  width: 6px;
+  height: 6px;
+  background: var(--ink-3);
+  border-radius: 50%;
+}
+
+.calm__chip[data-all-day="true"] .calm__dot {
+  width: 100%;
+  max-width: 6px;
+  background: var(--lit);
+}
+
+.calm__more {
+  font-size: var(--size-xs);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.calm__day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.calm__day-title {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  gap: var(--space-2);
   margin: 0;
   font-size: var(--size-md);
   font-weight: 700;
   color: var(--ink);
 }
 
-.cald__count {
+.calm__day-date {
   font-size: var(--size-xs);
   font-weight: 600;
+  color: var(--ink-3);
+}
+
+.calm__empty {
+  margin: 0;
+  font-size: var(--size-sm);
   color: var(--ink-3);
 }
 
@@ -903,6 +1078,34 @@
 .servd__error {
   display: block;
   color: var(--warn);
+}
+
+/* An address is the thing you came here for, so it reads a shade louder than
+   the image name it stands in for. */
+.servd__address {
+  color: var(--ink-2);
+}
+
+.servd__stack {
+  margin-bottom: var(--space-3);
+}
+
+.servd__stack-name {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  margin: 0 0 var(--space-1) var(--space-3);
+  font-size: var(--size-sm);
+  font-weight: 650;
+  color: var(--ink-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.servd__stack-count {
+  font-weight: 550;
+  color: var(--ink-3);
+  letter-spacing: 0;
 }
 
 /* --- Countdowns --------------------------------------------------------------- */

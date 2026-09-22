@@ -1,5 +1,5 @@
 import { get } from "node:http";
-import type { ContainerHealth, ContainerStatus } from "@home-dash/shared";
+import type { ContainerHealth, ContainerPort, ContainerStatus } from "@home-dash/shared";
 
 /**
  * Container states from the Docker Engine API, over its unix socket. Only
@@ -13,6 +13,16 @@ export interface DockerContainer {
   Image?: string;
   State?: string;
   Status?: string;
+  Ports?: DockerPort[];
+  Labels?: Record<string, string>;
+}
+
+/** A port as Docker reports it. PublicPort is absent when nothing is published. */
+export interface DockerPort {
+  IP?: string;
+  PrivatePort?: number;
+  PublicPort?: number;
+  Type?: string;
 }
 
 export type DockerRequest = (path: string) => Promise<unknown>;
@@ -53,6 +63,25 @@ export function healthOf(status: string): ContainerHealth {
   return null;
 }
 
+/**
+ * The ports you can actually type into a browser.
+ *
+ * Only published ports have a PublicPort, and Docker lists each one twice when
+ * it is bound on both IPv4 and IPv6 - the address is the same either way, so
+ * the pair collapses to one entry.
+ */
+export function publishedPorts(raw: DockerPort[] = []): ContainerPort[] {
+  const byPort = new Map<string, ContainerPort>();
+  for (const port of raw) {
+    if (port.PublicPort === undefined) continue;
+    const protocol = port.Type ?? "tcp";
+    const key = `${port.PublicPort}/${protocol}`;
+    if (byPort.has(key)) continue;
+    byPort.set(key, { host: port.PublicPort, container: port.PrivatePort ?? port.PublicPort, protocol });
+  }
+  return [...byPort.values()].sort((a, b) => a.host - b.host || a.protocol.localeCompare(b.protocol));
+}
+
 export function mapContainer(raw: DockerContainer): ContainerStatus {
   const status = raw.Status ?? "";
   return {
@@ -62,6 +91,8 @@ export function mapContainer(raw: DockerContainer): ContainerStatus {
     state: raw.State ?? "unknown",
     status,
     health: healthOf(status),
+    ports: publishedPorts(raw.Ports),
+    project: raw.Labels?.["com.docker.compose.project"] || null,
   };
 }
 

@@ -40,7 +40,7 @@ refresh:
 # Which calendars appear is set by the secret iCal addresses in .env
 # (CALENDAR_ICAL_URLS), not here - each address is a credential.
 calendar:
-  daysAhead: 7
+  daysAhead: 62
 
 # Tasks are read from, and quick-added to, this TickTick list. Who each task is
 # assigned to comes from the list's members in TickTick; nothing to fill in.

@@ -1,4 +1,4 @@
-import type { ServicesSnapshot } from "@home-dash/shared";
+import type { ContainerStatus, ServicesSnapshot } from "@home-dash/shared";
 import { describe, expect, it } from "vitest";
 import { containerState, serviceRows, summary } from "./services.js";
 import { formatBytes, formatRate, formatUptime, levelFor, seriesPath } from "./system.js";
@@ -44,11 +44,22 @@ describe("seriesPath", () => {
 });
 
 describe("services", () => {
+  const container = (over: Partial<ContainerStatus>): ContainerStatus => ({
+    name: "",
+    image: "",
+    state: "running",
+    status: "",
+    health: null,
+    ports: [],
+    project: null,
+    ...over,
+  });
+
   const data: ServicesSnapshot = {
     containers: [
-      { name: "jellyfin", image: "", state: "running", status: "Up 3 days (healthy)", health: "healthy" },
-      { name: "backup", image: "", state: "exited", status: "Exited (1) 4 hours ago", health: null },
-      { name: "pihole", image: "", state: "running", status: "Up 2 minutes (health: starting)", health: "starting" },
+      container({ name: "jellyfin", status: "Up 3 days (healthy)", health: "healthy" }),
+      container({ name: "backup", state: "exited", status: "Exited (1) 4 hours ago" }),
+      container({ name: "pihole", status: "Up 2 minutes (health: starting)", health: "starting" }),
     ],
     dockerError: null,
     checks: [
