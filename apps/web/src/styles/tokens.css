@@ -1,33 +1,33 @@
 /* ---------------------------------------------------------------------------
    Design tokens.
 
-   Two accents, both semantic rather than decorative:
-     --lit  amber  "this is on / this is happening now"  (a lit bulb, an event in progress)
-     --wet  blue   water                                  (rain probability, precipitation)
+   Bento: every widget is its own softly tinted tile, so the wall reads as a
+   handful of distinct objects rather than one grid of identical boxes. The
+   tint says which thing you are looking at; it never carries meaning.
 
-   Day and night are two designs, not one design with inverted colours. Night is
-   near-monochrome and deliberately dim: a person reading this at 3am in a dark
-   hallway should not be dazzled, so night ink is muted sage, never white.
+   Two accents do carry meaning, and stay semantic rather than decorative:
+     --lit  amber  "this is on"   (a lit bulb, a task due today) - fills only,
+                                  it is too light to carry text
+     --wet  blue   water          (rain probability, precipitation)
+
+   Day and night are two designs, not one design with inverted colours. Night
+   keeps the tints but sinks them almost to black, and night ink is a muted
+   lavender grey, never white: a person reading this at 3am in a dark hallway
+   should not be dazzled.
 --------------------------------------------------------------------------- */
 
 @font-face {
-  font-family: "Archivo";
-  src: url("/fonts/archivo-variable.woff2") format("woff2-variations");
-  font-weight: 100 900;
-  font-stretch: 62% 125%;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Newsreader";
-  src: url("/fonts/newsreader-variable.woff2") format("woff2-variations");
+  font-family: "Bricolage Grotesque";
+  src: url("/fonts/bricolage-grotesque-variable.woff2") format("woff2-variations");
   font-weight: 200 800;
   font-display: swap;
 }
 
 :root {
-  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
-  --font-text: "Newsreader", Georgia, "Times New Roman", serif;
+  /* One family throughout; the optical-size axis gives the clock its
+     character and keeps small text sturdy. */
+  --font-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --font-text: var(--font-display);
 
   /* Major-third scale. Sized for a 7.9" panel read from across a room. */
   --size-xs: 0.8125rem;
@@ -46,30 +46,76 @@
   --space-5: 1.5rem;
   --space-6: 2rem;
 
-  --radius: 3px;
+  /* Three radii by role: the tile, things inside a tile, and controls. */
+  --radius-tile: 32px;
+  --radius-inner: 20px;
+  --radius-pill: 999px;
+  --radius: var(--radius-inner);
   --edge-width: 1px;
 
-  --ground: #edefea;
+  --ground: #f3f3f6;
   --surface: #ffffff;
-  --edge: #dde1da;
-  --ink: #1b2a24;
-  --ink-2: #5a6b63;
-  --ink-3: #7f8b84;
-  --lit: #e8a33d;
-  --wet: #3e7ca6;
-  --warn: #b3472f;
-  --press: rgba(27, 42, 36, 0.07);
+  --edge: #e6e6ec;
+  --ink: #1d1b26;
+  --ink-2: #4f4c5c;
+  --ink-3: #6b6778;
+  --lit: #e2a52a;
+  --wet: #2f6fb3;
+  --warn: #b53a27;
+
+  --tint-clock: #e4defa;
+  --tint-weather: #d8e9f8;
+  --tint-lights: #fdeec2;
+  --tint-calendar: #dcefe3;
+  --tint-tasks: #fbe2d9;
+  --tint-river: #d3ecea;
+  --tint-sun: #f9e6cb;
+  --tint-bins: #e3ecd2;
+  --tint-countdowns: #f7dcea;
+  --tint-commute: #dfe3ea;
+  --tint-spotify: #dcf1d2;
+
+  /* An event happening now: the strongest shape on its tile. */
+  --now-fill: #1d1b26;
+  --now-ink: #f3f3f6;
+
+  /* Translucent layers that sit on any tint. */
+  --row: rgba(255, 255, 255, 0.62);
+  --track: rgba(29, 27, 38, 0.1);
+  --line: rgba(29, 27, 38, 0.08);
+  --knob: #ffffff;
+  --press: rgba(29, 27, 38, 0.07);
 }
 
 :root[data-theme="dark"] {
-  --ground: #0e1412;
-  --surface: #151d1a;
-  --edge: #1f2a26;
-  --ink: #8fa39a;
-  --ink-2: #798782;
-  --ink-3: #606a66;
-  --lit: #b8823a;
-  --wet: #466c86;
-  --warn: #ac786d;
-  --press: rgba(143, 163, 154, 0.09);
+  --ground: #0f0f13;
+  --surface: #1a1a21;
+  --edge: #26262e;
+  --ink: #c9c6d4;
+  --ink-2: #9894a6;
+  --ink-3: #7a7688;
+  --lit: #b98a33;
+  --wet: #5b8bbd;
+  --warn: #c7806f;
+
+  --tint-clock: #1f1b2e;
+  --tint-weather: #14212d;
+  --tint-lights: #2a2414;
+  --tint-calendar: #15231b;
+  --tint-tasks: #2a1b17;
+  --tint-river: #122526;
+  --tint-sun: #2a2116;
+  --tint-bins: #1d2415;
+  --tint-countdowns: #2a1823;
+  --tint-commute: #1b1e25;
+  --tint-spotify: #15261a;
+
+  --now-fill: #38334c;
+  --now-ink: #dedae8;
+
+  --row: rgba(255, 255, 255, 0.05);
+  --track: rgba(255, 255, 255, 0.09);
+  --line: rgba(255, 255, 255, 0.06);
+  --knob: #0f0f13;
+  --press: rgba(255, 255, 255, 0.07);
 }

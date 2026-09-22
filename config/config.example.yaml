@@ -30,6 +30,10 @@ refresh:
   calendar: 300 # 5 minutes
   tasks: 120
   lights: 30
+  river: 900       # NOAA updates gauges every 15 minutes or so
+  countdowns: 3600
+  commute: 600     # TomTom's free tier allows 2,500 requests a day in total
+  spotify: 10
 
 # Which calendars appear is set by the secret iCal addresses in .env
 # (CALENDAR_ICAL_URLS), not here - each address is a credential.
@@ -49,6 +53,50 @@ lights: []
 #   - { id: living, name: "Living Room", host: 192.168.1.50 }
 #   - { id: bedroom, name: "Bedroom", host: 192.168.1.51 }
 
+# Bin collections for the bin-day widget. `day` is sun..sat. For a bin
+# collected every other week, set `every: 2` and give any date it was (or will
+# be) collected as `anchor`. Holiday shifts go in `moved`; cancelled pickups in
+# `skip`. The evening before a pickup, the widget says to put the bin out.
+bins: []
+# bins:
+#   - { name: Trash, day: tue }
+#   - { name: Recycling, day: tue, every: 2, anchor: "2026-09-29" }
+#   - name: Yard waste
+#     day: tue
+#     every: 2
+#     anchor: "2026-09-22"
+#     moved: [{ from: "2026-12-29", to: "2026-12-30" }]
+#     skip: ["2026-12-22"]
+
+# Countdowns: dates listed here, plus any calendar event with the tag in its
+# title (the tag is dropped from what is shown). A yearly event counts down to
+# its next occurrence only.
+countdowns:
+  calendarTag: "#countdown"
+  daysAhead: 365
+  items: []
+  # items:
+  #   - { name: "Halloween", date: "2026-10-31", emoji: "🎃" }
+
+# River gauges from NOAA's National Water Prediction Service; no key needed.
+# Ids are the NWS location ids on water.noaa.gov. These are the gauges a river
+# widget shows unless it lists its own in options.gauges. Nearby:
+#   SQUW1  Snoqualmie River at Snoqualmie Falls (has flood thresholds)
+#   SNQW1  North Fork Snoqualmie near Snoqualmie Falls
+#   TANW1  Middle Fork Snoqualmie near Tanner
+#   GARW1  South Fork Snoqualmie near Garcia
+#   CRNW1  Snoqualmie River near Carnation
+river:
+  gauges: [SQUW1]
+
+# Drive times from `location` with live traffic, via TomTom. Needs
+# TOMTOM_API_KEY in .env. Up to five destinations; right-click a place in any
+# map to copy its latitude and longitude.
+commute:
+  destinations: []
+  # destinations:
+  #   - { id: office, name: "Office", lat: 47.6101, lon: -122.2015 }
+
 # ---------------------------------------------------------------------------
 # Profiles. Each is an independent dashboard - its own widgets, layout and
 # theme - and the schedule decides which one is showing. A window whose start
@@ -56,12 +104,18 @@ lights: []
 #
 # Layout is a 12-column grid. `col` and `row` are 1-based; spans default to 1.
 # `enabled: false` switches a widget off and leaves its space empty.
+#
+# Pages: give a widget `page: 2` (or 3...) to put it on another page. Pages sit
+# side by side and change with a swipe; each page has its own grid. After
+# `returnToFirstPage` seconds without a touch the screen slides back to page 1
+# (0 = never). Widgets without `page` are on page 1.
 # ---------------------------------------------------------------------------
 profiles:
   # The daytime dashboard: everything on screen.
   day:
     schedule: { from: "06:30", to: "21:30" }
     theme: light
+    returnToFirstPage: 120
     widgets:
       - id: clock
         type: clock
@@ -88,6 +142,48 @@ profiles:
         type: lights
         title: "Lights"
         grid: { col: 10, row: 3, colSpan: 3, rowSpan: 4 }
+
+      # --- Page 2: swipe left ------------------------------------------------
+      # One gauge gets a big reading and chart; several get a row each.
+      # e.g. options: { gauges: [SNQW1, TANW1, GARW1] } for the three forks.
+      - id: river
+        type: river
+        title: "Snoqualmie River"
+        page: 2
+        grid: { col: 1, row: 1, colSpan: 5, rowSpan: 3 }
+
+      # Worked out from `location`; no service needed.
+      - id: sunmoon
+        type: sunmoon
+        title: "Sun & moon"
+        page: 2
+        grid: { col: 6, row: 1, colSpan: 4, rowSpan: 3 }
+
+      - id: bins
+        type: bins
+        title: "Bin day"
+        page: 2
+        grid: { col: 10, row: 1, colSpan: 3, rowSpan: 3 }
+
+      # options: { limit: 6 } caps how many are shown.
+      - id: countdowns
+        type: countdowns
+        title: "Countdowns"
+        page: 2
+        grid: { col: 1, row: 4, colSpan: 4, rowSpan: 3 }
+
+      - id: commute
+        type: commute
+        title: "Drive times"
+        page: 2
+        grid: { col: 5, row: 4, colSpan: 4, rowSpan: 3 }
+
+      # Needs SPOTIFY_CLIENT_ID in .env, then Connect Spotify in Settings.
+      - id: spotify
+        type: spotify
+        title: "Now playing"
+        page: 2
+        grid: { col: 9, row: 4, colSpan: 4, rowSpan: 3 }
 
   # The night dashboard: a big clock you can read from across a dark room.
   night:

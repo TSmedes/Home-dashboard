@@ -6,6 +6,7 @@ const widget = (id: string, grid: Partial<WidgetInstance["grid"]>, enabled = tru
   id,
   type: id,
   enabled,
+  page: 1,
   options: {},
   grid: { row: 1, colSpan: 1, rowSpan: 1, share: false, ...grid },
 });

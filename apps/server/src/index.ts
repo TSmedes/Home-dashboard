@@ -12,6 +12,7 @@ import { openDatabase, SqliteCacheStore, StateStore, TokenStore } from "./db/ind
 import { loadEnv } from "./env.js";
 import { apiRoutes } from "./routes/api.js";
 import { lightRoutes } from "./routes/lights.js";
+import { spotifyRoutes } from "./routes/spotify.js";
 import { taskRoutes } from "./routes/tasks.js";
 import { StreamHub } from "./stream.js";
 
@@ -42,6 +43,7 @@ await app.register(
 );
 await app.register(lightRoutes(dashboard));
 await app.register(taskRoutes(dashboard, env));
+await app.register(spotifyRoutes(dashboard, tokens, env));
 
 // Serve the built SPA, falling back to index.html so client routes work.
 // register() is lazy - a try/catch around it would never fire - so the

@@ -3,10 +3,10 @@ import type { Profile } from "@home-dash/shared";
 import { ago, overrideSummary, profileLabel, scheduleChanges } from "./model.js";
 
 const LA = "America/Los_Angeles";
-const clockWidget = [{ id: "clock", type: "clock", enabled: true, grid: { col: 1, row: 1, colSpan: 1, rowSpan: 1, share: false }, options: {} }];
+const clockWidget = [{ id: "clock", type: "clock", enabled: true, page: 1, grid: { col: 1, row: 1, colSpan: 1, rowSpan: 1, share: false }, options: {} }];
 const profiles: Record<string, Profile> = {
-  day: { schedule: { from: "06:30", to: "21:30" }, theme: "light", widgets: clockWidget },
-  night: { schedule: { from: "21:30", to: "06:30" }, theme: "dark", widgets: clockWidget },
+  day: { schedule: { from: "06:30", to: "21:30" }, theme: "light", returnToFirstPage: 120, widgets: clockWidget },
+  night: { schedule: { from: "21:30", to: "06:30" }, theme: "dark", returnToFirstPage: 120, widgets: clockWidget },
 };
 
 describe("scheduleChanges", () => {

@@ -122,6 +122,101 @@ export interface LightsSnapshot {
   lights: LightState[];
 }
 
+export type FloodCategory = "none" | "action" | "minor" | "moderate" | "major";
+
+/** One reading, in whichever unit the gauge's flood thresholds use. */
+export interface RiverPoint {
+  time: string;
+  value: number;
+}
+
+/** Every gauge any river widget shows. A widget picks its own out by id. */
+export interface RiverSnapshot {
+  gauges: RiverGauge[];
+  /** Gauges that could not be read this time, with the reason. */
+  failed: { gauge: string; message: string }[];
+}
+
+export interface RiverGauge {
+  /** NWS location id, upper case, e.g. SQUW1. */
+  gauge: string;
+  name: string;
+  /** Which measure the flood thresholds, and therefore this snapshot, are in. */
+  measure: "flow" | "stage";
+  /** "cfs" for flow, "ft" for stage. */
+  unit: string;
+  /** Latest observation, or null when the gauge has not reported. */
+  current: RiverPoint | null;
+  /** Change over the last 6 hours of observations, in `unit`. */
+  change6h: number | null;
+  category: FloodCategory;
+  /** Thresholds that exist for this gauge, in `unit`. */
+  thresholds: Partial<Record<Exclude<FloodCategory, "none">, number>>;
+  /** Highest forecast value, when the gauge is forecast. */
+  forecastPeak: RiverPoint | null;
+  /** Observations over the last 48 hours, oldest first. */
+  observed: RiverPoint[];
+  /** Forecast values, oldest first. */
+  forecast: RiverPoint[];
+}
+
+export interface Countdown {
+  id: string;
+  name: string;
+  /** YYYY-MM-DD. */
+  date: string;
+  emoji?: string;
+  source: "config" | "calendar";
+}
+
+export interface CountdownsSnapshot {
+  countdowns: Countdown[];
+}
+
+export interface CommuteRoute {
+  id: string;
+  name: string;
+  /** Door to door with current traffic. */
+  travelSeconds: number;
+  /** How much of that is traffic, compared with an empty road. */
+  delaySeconds: number;
+  lengthMeters: number;
+  /** ISO instant of arrival if leaving when this was fetched. */
+  arrival: string;
+}
+
+export interface CommuteSnapshot {
+  routes: CommuteRoute[];
+  /** Destinations that could not be routed, by id, with the reason. */
+  failed: { id: string; name: string; message: string }[];
+}
+
+export interface SpotifyTrack {
+  title: string;
+  /** Artists joined, e.g. "Khruangbin, Leon Bridges"; the show for a podcast. */
+  artist: string;
+  album: string;
+  /** Largest album image, or null. */
+  artwork: string | null;
+  durationMs: number;
+}
+
+export interface SpotifySnapshot {
+  /**
+   * Why nothing can be shown, when that is the account's doing rather than a
+   * network blip. `premium-required`: Spotify only serves developer apps whose
+   * owner has Premium. `reconnect`: the sign-in was revoked or has expired.
+   */
+  problem: "premium-required" | "reconnect" | null;
+  /** From GET /me. Controls only work on "premium". */
+  product: string | null;
+  playing: boolean;
+  track: SpotifyTrack | null;
+  /** Progress when fetched; the client advances it while playing. */
+  progressMs: number;
+  device: string | null;
+}
+
 /** A path into config.yaml. `{ id }` picks the list item with that id. */
 export type PathSegment = string | number | { id: string };
 

@@ -1,6 +1,12 @@
+import { BinDayWidget } from "./BinDayWidget.js";
 import { CalendarWidget } from "./CalendarWidget.js";
 import { ClockWidget } from "./ClockWidget.js";
+import { CommuteWidget } from "./CommuteWidget.js";
+import { CountdownsWidget } from "./CountdownsWidget.js";
 import { LightsWidget } from "./LightsWidget.js";
+import { RiverWidget } from "./RiverWidget.js";
+import { SpotifyWidget } from "./SpotifyWidget.js";
+import { SunMoonWidget } from "./SunMoonWidget.js";
 import { TasksWidget } from "./TasksWidget.js";
 import { WeatherWidget } from "./WeatherWidget.js";
 import type { WidgetDefinition } from "./types.js";
@@ -16,7 +22,7 @@ export const widgetRegistry: Record<string, WidgetDefinition> = {
   clock: {
     type: "clock",
     component: ClockWidget as WidgetDefinition["component"],
-    chrome: false,
+    chrome: true,
   },
   weather: {
     type: "weather",
@@ -41,6 +47,42 @@ export const widgetRegistry: Record<string, WidgetDefinition> = {
     component: LightsWidget as WidgetDefinition["component"],
     dataKey: "lights",
     chrome: true,
+  },
+  sunmoon: {
+    type: "sunmoon",
+    component: SunMoonWidget as WidgetDefinition["component"],
+    chrome: true,
+  },
+  bins: {
+    type: "bins",
+    component: BinDayWidget as WidgetDefinition["component"],
+    chrome: true,
+  },
+  countdowns: {
+    type: "countdowns",
+    component: CountdownsWidget as WidgetDefinition["component"],
+    dataKey: "countdowns",
+    chrome: true,
+  },
+  river: {
+    type: "river",
+    component: RiverWidget as WidgetDefinition["component"],
+    dataKey: "river",
+    chrome: true,
+  },
+  commute: {
+    type: "commute",
+    component: CommuteWidget as WidgetDefinition["component"],
+    dataKey: "commute",
+    chrome: true,
+    setupHint: "Add TOMTOM_API_KEY to .env and your destinations under commute: in config.yaml.",
+  },
+  spotify: {
+    type: "spotify",
+    component: SpotifyWidget as WidgetDefinition["component"],
+    dataKey: "spotify",
+    chrome: true,
+    setupHint: "Add SPOTIFY_CLIENT_ID to .env, then choose Connect Spotify in Settings.",
   },
 };
 

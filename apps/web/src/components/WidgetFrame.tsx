@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import type { WidgetEnvelope } from "@home-dash/shared";
 
 interface Props {
+  /** The widget type; each type gets its own tile tint. */
+  type: string;
   title?: string | undefined;
   chrome: boolean;
   envelope: WidgetEnvelope<unknown> | null;
@@ -24,12 +26,12 @@ function shortTime(iso: string, timezone: string, clock: "12h" | "24h"): string 
  * can be in before it has data. Keeping these here means every integration gets
  * the same honest behaviour for free.
  */
-export function WidgetFrame({ title, chrome, envelope, timezone, clock, children }: Props) {
+export function WidgetFrame({ type, title, chrome, envelope, timezone, clock, children }: Props) {
   const isStale = envelope?.stale === true && envelope.data !== null;
   const hasNothing = envelope !== null && envelope.data === null;
 
   return (
-    <section className={chrome ? "widget surface" : "widget"}>
+    <section className={chrome ? `widget surface widget--${type}` : `widget widget--${type}`}>
       {(title || isStale) && (
         <header className="widget__head">
           {title ? <h2 className="widget__title">{title}</h2> : <span />}

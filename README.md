@@ -129,6 +129,26 @@ instead of leaving a gap. The night screen's bottom row works this way:
 Widgets adapt to small tiles: a narrow weather tile stacks its figures, and a
 short lights tile keeps the on/off switches but drops the brightness sliders.
 
+### Pages
+
+A profile can have more than one page. Pages sit side by side and change with
+a swipe; dots along the bottom show where you are and can be tapped. Give a
+widget `page: 2` to put it on the second page. Each page has its own 12-column
+grid, and a widget without `page` is on page 1, so an existing config is one
+page until you say otherwise.
+
+```yaml
+      - id: river
+        type: river
+        page: 2
+        grid: { col: 1, row: 1, colSpan: 5, rowSpan: 3 }
+```
+
+After `returnToFirstPage` seconds without a touch (120 by default, `0` for
+never) the screen slides back to page 1, so the wall doesn't sit on page three
+all afternoon. Switching between day and night also starts again on page 1. A
+page whose widgets are all switched off is skipped rather than shown blank.
+
 A profile whose `from` is later than its `to` wraps past midnight, which is how
 the night window is written. Overlapping windows resolve to whichever profile
 appears first in the file.
@@ -137,6 +157,39 @@ The settings screen writes back to this same file as small, targeted edits:
 it changes only the value you touched and leaves every other character alone,
 comments and their alignment included. Turning a setting back to its default
 removes the line it added, so the file ends up exactly as you wrote it.
+
+## More widgets
+
+These need nothing beyond `config.yaml` unless noted. The example config puts
+all of them on the day screen's second page.
+
+- **River level** (`river`): the Snoqualmie River at Snoqualmie Falls from
+  NOAA's water prediction service. It shows the latest reading, whether it's
+  rising or falling, the next flood threshold and the forecast peak, with a
+  48-hour chart and three days of forecast. No key. Change `river.gauge` to
+  any NWS gauge id from water.noaa.gov.
+- **Sun & moon** (`sunmoon`): sunrise, sunset, day length and how it compares
+  with yesterday, the moon's phase and the next full or new moon. Worked out
+  locally from `location`.
+- **Bin day** (`bins`): the next pickup for each bin from the rules under
+  `bins:`, weekly or every few weeks, with holiday shifts and skips. From 4pm
+  the day before, it says which bins to put out tonight.
+- **Countdowns** (`countdowns`): days until the dates under
+  `countdowns.items`, plus any calendar event with `#countdown` in its title.
+  A yearly event counts down to its next occurrence only.
+- **Commute** (`commute`): drive time with live traffic to each place under
+  `commute.destinations`, with the traffic delay and arrival time. Needs a free
+  TomTom key (`TOMTOM_API_KEY`); `npm run setup` walks through it.
+- **Spotify** (`spotify`): what's playing, with album art and progress, plus
+  play, pause and skip on Premium. Needs `SPOTIFY_CLIENT_ID` from a Spotify
+  developer app (the wizard walks through creating one), then **Connect
+  Spotify** in settings. Spotify sends you to `http://127.0.0.1:8888/callback`,
+  a page that won't load; copy that address back into settings to finish. The
+  sign-in is kept in the database, not `.env`.
+
+  Since February 2026 Spotify only serves a developer app while its **owner has
+  Premium**. On a free account the widget says so rather than failing
+  silently, and it starts working once the account is upgraded.
 
 ## Settings
 
@@ -151,7 +204,9 @@ The gear in the top-left corner opens settings. It covers:
   together, using Open-Meteo's free place search.
 - **Lights**: rename a bulb, or hide it (a hidden bulb isn't polled either).
 - **Widgets**: switch each widget on or off, separately for the day and night
-  screens. A switched-off widget leaves its space empty.
+  screens and grouped by page. A switched-off widget leaves its space empty.
+- **Spotify**: connect or disconnect the Spotify account, once
+  `SPOTIFY_CLIENT_ID` is set.
 - **Status**: when each source last updated, and its error if it failed.
 
 Settings closes itself after two minutes without a touch, so the wall never
@@ -214,5 +269,4 @@ Auto-Brightness or a Shortcuts automation.
 
 - **Adding calendar events from the wall** needs Google OAuth. See
   [FUTURE.md](FUTURE.md) for why it was set aside and what reviving it involves.
-- **Gmail and Spotify** were deliberately left out; FUTURE.md explains why, and
-  what a free Spotify account can and cannot do.
+- **Gmail** was deliberately left out; FUTURE.md explains why.

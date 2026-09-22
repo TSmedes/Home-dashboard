@@ -38,9 +38,8 @@ function parts(now: Date, timezone: string, clock: "12h" | "24h", seconds: boole
 }
 
 /**
- * The only widget with no server dependency, and the only one drawn without a
- * surface behind it - it sits on the background, which is what makes it read as
- * the primary thing on the wall.
+ * The only widget with no server dependency. It carries the largest type on the
+ * wall, which is what makes it read as the primary thing there.
  */
 export function ClockWidget({ instance, config }: WidgetProps) {
   const options = instance.options as ClockOptions;

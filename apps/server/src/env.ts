@@ -27,6 +27,18 @@ const EnvSchema = z.object({
    */
   TICKTICK_API_TOKEN: z.string().optional(),
 
+  /**
+   * TomTom API key for the commute widget (developer.tomtom.com, free tier).
+   * Sent in every routing URL, so it is scrubbed from errors.
+   */
+  TOMTOM_API_KEY: z.string().optional(),
+
+  /**
+   * Client id of a Spotify developer app. Public by design: sign-in uses PKCE,
+   * so there is no client secret. The tokens themselves live in the database.
+   */
+  SPOTIFY_CLIENT_ID: z.string().optional(),
+
   KASA_USERNAME: z.string().optional(),
   KASA_PASSWORD: z.string().optional(),
 });

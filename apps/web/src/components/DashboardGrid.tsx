@@ -1,4 +1,4 @@
-import { GRID_COLUMNS, type DashboardConfig, type Profile, type WidgetInstance } from "@home-dash/shared";
+import { GRID_COLUMNS, type DashboardConfig, type WidgetInstance } from "@home-dash/shared";
 import type { WidgetEnvelope } from "@home-dash/shared";
 import { widgetFor } from "../widgets/registry.js";
 import { WidgetErrorBoundary } from "./ErrorBoundary.js";
@@ -7,13 +7,14 @@ import { WidgetFrame } from "./WidgetFrame.js";
 
 interface Props {
   config: DashboardConfig;
-  profile: Profile;
+  /** One page's widgets, switched on or off. */
+  widgets: WidgetInstance[];
   envelopes: Record<string, WidgetEnvelope<unknown>>;
   availableSources: string[];
 }
 
-export function DashboardGrid({ config, profile, envelopes, availableSources }: Props) {
-  const { rows, cells } = layout(profile.widgets);
+export function DashboardGrid({ config, widgets, envelopes, availableSources }: Props) {
+  const { rows, cells } = layout(widgets);
 
   const render = (instance: WidgetInstance) => {
     const definition = widgetFor(instance.type);
@@ -30,14 +31,20 @@ export function DashboardGrid({ config, profile, envelopes, availableSources }: 
             </div>
           </section>
         ) : needsSetup ? (
-          <section className="widget surface">
+          <section className={`widget surface widget--${instance.type}`}>
+            {instance.title && (
+              <header className="widget__head">
+                <h2 className="widget__title">{instance.title}</h2>
+              </header>
+            )}
             <div className="widget-message">
               <p>Not connected yet.</p>
-              <p className="widget-message__detail">Run npm run setup to link this account.</p>
+              <p className="widget-message__detail">{definition?.setupHint ?? "Run npm run setup to link this account."}</p>
             </div>
           </section>
         ) : (
           <WidgetFrame
+            type={instance.type}
             title={instance.title}
             chrome={definition.chrome ?? true}
             envelope={envelope}

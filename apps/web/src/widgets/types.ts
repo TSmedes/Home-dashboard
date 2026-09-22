@@ -18,4 +18,6 @@ export interface WidgetDefinition {
    * directly on the background, which is what makes it read as primary.
    */
   chrome?: boolean;
+  /** What to do when its source is not set up. Defaults to running the setup wizard. */
+  setupHint?: string;
 }

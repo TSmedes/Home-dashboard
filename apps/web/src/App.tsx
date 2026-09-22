@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { DashboardGrid } from "./components/DashboardGrid.js";
+import { Pager } from "./components/Pager.js";
 import { useDashboard } from "./lib/dashboard.js";
 import { SettingsPanel } from "./settings/SettingsPanel.js";
 
@@ -52,7 +52,8 @@ export function App() {
 
   return (
     <main className="dashboard">
-      <DashboardGrid
+      <Pager
+        key={activeProfile}
         config={config}
         profile={profile}
         envelopes={envelopes}

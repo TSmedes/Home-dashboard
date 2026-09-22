@@ -50,20 +50,22 @@ There is no iCal-style shortcut for mail, so Gmail depends on the Google OAuth
 work above. Once that exists, Gmail is a scope added to the same client, plus a
 provider and a widget.
 
-### Spotify widget
-Dropped because playback control is Premium-only. Every Web API playback
-endpoint (`play`, `pause`, `next`, `previous`, `volume`, transfer-device)
-returns `403 PREMIUM_REQUIRED` on a free account, and the Web Playback SDK is
-Premium-only too.
+### Spotify widget: built, waiting on Premium
+The widget, its sign-in and its controls are built (see README). What stops
+it working today is Spotify's rule, from February 2026, that a Development
+Mode app is only served while the account that **owns** it has Premium; the
+same change limits an app to five users and requires the redirect URI to be a
+loopback IP (`http://127.0.0.1:8888/callback`), not `localhost`. On a free
+account every call comes back 403 and the widget says "Needs Spotify Premium".
 
-What a free account *can* do, should this be revisited:
-- Read currently-playing with live progress (`/me/player/currently-playing`)
-- Recently played history
-- Browse playlists and their tracks
-- Search
+Nothing needs to change when an account is upgraded: the widget reads the
+account's `product` and shows play, pause and skip only on Premium. If the
+owner's Premium later lapses, it goes back to saying so.
 
-A read-only widget is therefore possible today; the controls would light up on
-their own if the account is ever upgraded, since the API reports `product`.
+Worth knowing if it is ever revived for real use: none of this has been
+exercised against the live API, only against recorded response shapes, since
+no Premium account was available. Check the 403 message still mentions
+Premium; that is what tells "needs Premium" apart from other refusals.
 
 ## Known limitations
 
@@ -93,5 +95,4 @@ their own if the account is ever upgraded, since the API reports `product`.
   unassign endpoints, and the widget already knows the list's members; this is
   a picker on the task row.
 - **Chore rotation** between the two people on the shared list.
-- **Transit or traffic** for a regular commute.
 - **Photo slideshow** as a third profile, for when nobody is home.

@@ -262,7 +262,29 @@ check_ticktick() {
 }
 # --- end TickTick helpers --------------------------------------------------
 
-TOTAL_STAGES=4
+# --- TomTom helpers --------------------------------------------------------
+# check_tomtom KEY succeeds if the key should be saved. The key goes in the
+# URL, so the URL is handed to curl as a config file on stdin, keeping it out
+# of `ps`. Routes a short hop across Snoqualmie; any real route proves the key.
+check_tomtom() {
+  local key="$1" url
+  if ! command -v curl >/dev/null 2>&1; then
+    note "curl is not installed, so the key was not checked."
+    return 0
+  fi
+  url="https://api.tomtom.com/routing/1/calculateRoute/47.5287,-121.8254:47.5301,-121.8700/json?key=${key}"
+  if ! printf 'url = "%s"\n' "$url" | curl -fsS --max-time 20 -K - -o /dev/null 2>/dev/null; then
+    warn "TomTom rejected that key."
+    note "Copy it again from the Keys page; a brand-new key can take a minute to work."
+    confirm "Save it anyway?"
+    return
+  fi
+  printf '  %s✓%s key works\n' "$GREEN" "$RESET"
+  return 0
+}
+# --- end TomTom helpers ----------------------------------------------------
+
+TOTAL_STAGES=6
 
 banner "Home dashboard setup"
 
@@ -359,6 +381,48 @@ if confirm "Any bulb missing that you need to control through TP-Link's cloud?";
 fi
 
 # ── 4 ─────────────────────────────────────────────────────────────────────
+stage "Commute times: TomTom API key (optional)"
+say "The commute widget shows drive times with live traffic. TomTom's free"
+say "tier covers it: 2,500 requests a day, no card needed."
+if confirm "Set up commute times now?"; then
+  open_url "https://developer.tomtom.com/user/register"
+  step "Sign up (or sign in), then open Dashboard > Keys."
+  step "Copy the key TomTom created for you."
+  while true; do
+    ask_secret TOMTOM_API_KEY "Paste the key (input is hidden):"
+    if [[ -z "$TOMTOM_API_KEY" ]]; then break; fi
+    if check_tomtom "$TOMTOM_API_KEY"; then break; fi
+  done
+  if [[ -n "$TOMTOM_API_KEY" ]]; then
+    write_env TOMTOM_API_KEY "$TOMTOM_API_KEY"
+    step "Now add where you drive to under commute: in config.yaml."
+    note "Right-click a place in Google Maps to copy its latitude and longitude."
+  fi
+fi
+[[ -n "${TOMTOM_API_KEY:-}" ]] || SKIPPED+=("Commute: re-run npm run setup to add a TomTom key")
+
+# ── 5 ─────────────────────────────────────────────────────────────────────
+stage "Spotify: now playing (optional)"
+say "The Spotify widget shows what is playing, with play, pause and skip."
+warn "Since February 2026 Spotify only serves a developer app while the"
+warn "account that owns it has Premium. On a free account the widget just"
+warn "says it needs Premium."
+if confirm "Set up Spotify now?"; then
+  open_url "https://developer.spotify.com/dashboard"
+  step "Click Create app. Any name and description will do."
+  step "Redirect URI: http://127.0.0.1:8888/callback  (exactly this)"
+  step "Tick Web API, save, then open the app's Settings and copy its Client ID."
+  note "There is no client secret to copy: sign-in uses PKCE."
+  ask SPOTIFY_CLIENT_ID "Paste the Client ID:"
+  if [[ -n "$SPOTIFY_CLIENT_ID" ]]; then
+    write_env SPOTIFY_CLIENT_ID "$SPOTIFY_CLIENT_ID"
+    step "Once the dashboard is running, open Settings on it and choose"
+    step "Connect Spotify to sign in."
+  fi
+fi
+[[ -n "${SPOTIFY_CLIENT_ID:-}" ]] || SKIPPED+=("Spotify: re-run npm run setup to add a Client ID")
+
+# ── 6 ─────────────────────────────────────────────────────────────────────
 stage "Start the dashboard"
 say "Everything is saved. Start the dashboard on your server:"
 say  "    docker compose up -d"

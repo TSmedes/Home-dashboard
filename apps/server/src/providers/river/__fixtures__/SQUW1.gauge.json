@@ -1,0 +1,45 @@
+{
+  "lid": "SQUW1",
+  "name": "Snoqualmie River at Snoqualmie Falls",
+  "usgsId": "12144500",
+  "flood": {
+    "stageUnits": "ft",
+    "flowUnits": "cfs",
+    "categories": {
+      "major": {
+        "stage": -9999,
+        "flow": 41000
+      },
+      "moderate": {
+        "stage": -9999,
+        "flow": 31000
+      },
+      "minor": {
+        "stage": -9999,
+        "flow": 20000
+      },
+      "action": {
+        "stage": -9999,
+        "flow": 15000
+      }
+    }
+  },
+  "status": {
+    "observed": {
+      "primary": 0.365,
+      "primaryUnit": "kcfs",
+      "secondary": 2.2,
+      "secondaryUnit": "ft",
+      "floodCategory": "no_flooding",
+      "validTime": "2026-09-22T00:30:00Z"
+    },
+    "forecast": {
+      "primary": 0.54993,
+      "primaryUnit": "kcfs",
+      "secondary": 2.7,
+      "secondaryUnit": "ft",
+      "floodCategory": "no_flooding",
+      "validTime": "2026-09-29T00:00:00Z"
+    }
+  }
+}

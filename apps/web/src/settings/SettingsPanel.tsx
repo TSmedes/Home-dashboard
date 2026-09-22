@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import type { ConfigChange, DashboardConfig, Place } from "@home-dash/shared";
+import { pagesOf } from "../components/pages.js";
 import { useDashboard } from "../lib/dashboard.js";
 import { useNow } from "../lib/useNow.js";
 import { CommitInput, Segmented, Switch } from "./controls.js";
@@ -14,6 +15,12 @@ const WIDGET_NAMES: Record<string, string> = {
   calendar: "Calendar",
   tasks: "Tasks",
   lights: "Lights",
+  sunmoon: "Sun & moon",
+  bins: "Bin day",
+  countdowns: "Countdowns",
+  river: "River level",
+  commute: "Commute",
+  spotify: "Spotify",
 };
 
 const SOURCE_NAMES: Record<string, string> = {
@@ -21,6 +28,10 @@ const SOURCE_NAMES: Record<string, string> = {
   calendar: "Calendar",
   tasks: "TickTick",
   lights: "Lights",
+  river: "River gauge",
+  countdowns: "Countdowns",
+  commute: "TomTom",
+  spotify: "Spotify",
 };
 
 type Notice = { text: string; tone: "ok" | "error" } | null;
@@ -98,6 +109,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           <LocationSection config={config} save={save} />
           {config.lights.length > 0 && <LightsSection config={config} save={save} />}
           <WidgetsSection config={config} active={activeProfile} save={save} />
+          <SpotifySection setNotice={setNotice} />
           <StatusSection connection={connection} />
         </div>
       </div>
@@ -349,6 +361,7 @@ function WidgetsSection({ config, active, save }: { config: DashboardConfig; act
   const names = Object.keys(config.profiles);
   const [profile, setProfile] = useState(names.includes(active) ? active : names[0]!);
   const widgets = config.profiles[profile]?.widgets ?? [];
+  const pages = pagesOf(widgets);
 
   return (
     <Section title="Widgets">
@@ -362,28 +375,139 @@ function WidgetsSection({ config, active, save }: { config: DashboardConfig; act
           />
         </div>
       )}
-      {widgets.map((widget) => {
-        const name = widget.title ?? WIDGET_NAMES[widget.type] ?? widget.type;
-        return (
-          <Row key={widget.id} label={name}>
-            <Switch
-              checked={widget.enabled}
-              label={`Show ${name} on the ${profile} screen`}
-              onChange={(enabled) =>
-                save([
-                  // On is the default, so switching back on removes the key.
-                  { path: ["profiles", profile, "widgets", { id: widget.id }, "enabled"], value: enabled ? null : false },
-                ])
-              }
-            />
-          </Row>
-        );
-      })}
+      {pages.map((page, index) => (
+        <div key={page.number} className="settings__group">
+          {pages.length > 1 && <p className="settings__subhead">Page {index + 1}</p>}
+          {page.widgets.map((widget) => {
+            const name = widget.title ?? WIDGET_NAMES[widget.type] ?? widget.type;
+            return (
+              <Row key={widget.id} label={name}>
+                <Switch
+                  checked={widget.enabled}
+                  label={`Show ${name} on the ${profile} screen`}
+                  onChange={(enabled) =>
+                    save([
+                      // On is the default, so switching back on removes the key.
+                      { path: ["profiles", profile, "widgets", { id: widget.id }, "enabled"], value: enabled ? null : false },
+                    ])
+                  }
+                />
+              </Row>
+            );
+          })}
+        </div>
+      ))}
       <p className="settings__empty">
         {widgets.some((w) => w.grid.share)
           ? "Widgets in a shared row split its width, so switching one off widens the others. Anywhere else, a switched-off widget leaves its space empty."
           : "A switched-off widget leaves its space empty; switching it back puts it where it was."}
       </p>
+    </Section>
+  );
+}
+
+interface SpotifyStatus {
+  configured: boolean;
+  connected: boolean;
+  redirectUri: string;
+}
+
+/**
+ * Connecting Spotify. Spotify sends the browser back to a loopback address
+ * nothing listens on, so the last step is copying that address back here -
+ * the one bit of sign-in that has to be done by hand.
+ */
+function SpotifySection({ setNotice }: { setNotice: (notice: Notice) => void }) {
+  const [status, setStatus] = useState<SpotifyStatus | null>(null);
+  const [started, setStarted] = useState(false);
+  const [pasted, setPasted] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    send("GET", "/api/spotify")
+      .then((body) => setStatus(body as SpotifyStatus))
+      .catch(() => setStatus(null));
+  }, []);
+  useEffect(load, [load]);
+
+  if (!status?.configured) return null;
+
+  const connect = async () => {
+    setError(null);
+    try {
+      const { url } = (await send("POST", "/api/spotify/connect")) as { url: string };
+      window.open(url, "_blank", "noopener");
+      setStarted(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    }
+  };
+
+  const finish = async (event: FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await send("POST", "/api/spotify/callback", { pasted });
+      setNotice({ text: "Spotify connected", tone: "ok" });
+      setStarted(false);
+      setPasted("");
+      load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const disconnect = async () => {
+    await send("DELETE", "/api/spotify").catch(() => {});
+    setNotice({ text: "Spotify disconnected", tone: "ok" });
+    load();
+  };
+
+  return (
+    <Section title="Spotify">
+      {status.connected ? (
+        <Row label="Connected">
+          <button type="button" className="button" onClick={() => void disconnect()}>
+            Disconnect
+          </button>
+        </Row>
+      ) : (
+        <div className="settings__lead">
+          {!started ? (
+            <>
+              <p>Sign in to Spotify to show what&rsquo;s playing.</p>
+              <button type="button" className="button button--primary" onClick={() => void connect()}>
+                Connect Spotify
+              </button>
+            </>
+          ) : (
+            <form className="settings__connect" onSubmit={finish}>
+              <p>
+                After you agree, the browser lands on a page that won&rsquo;t load, at an address beginning{" "}
+                <strong>{status.redirectUri}</strong>. Copy that whole address and paste it here.
+              </p>
+              <input
+                className="field"
+                value={pasted}
+                onChange={(event) => setPasted(event.target.value)}
+                placeholder={`${status.redirectUri}?code=…`}
+                aria-label="The address Spotify sent you to"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+              />
+              <button type="submit" className="button button--primary" disabled={busy || pasted.trim().length === 0}>
+                {busy ? "Connecting" : "Finish"}
+              </button>
+            </form>
+          )}
+          {error && <p className="settings__error">{error}</p>}
+        </div>
+      )}
     </Section>
   );
 }

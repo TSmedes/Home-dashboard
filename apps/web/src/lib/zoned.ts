@@ -49,3 +49,22 @@ export function clockTime(at: Date, timezone: string, clock: "12h" | "24h"): { t
     meridiem: clock === "12h" ? get("dayPeriod").toLowerCase() : "",
   };
 }
+
+/**
+ * How far off a date is, the way people say it: "Today", "Tomorrow", a
+ * weekday within the week ahead, then a short date. Both keys YYYY-MM-DD.
+ */
+export function dayLabel(key: string, today: string): string {
+  const days = daysBetween(today, key);
+  if (days === 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  const date = noonOf(key);
+  if (days > 1 && days < 7) return new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "UTC" }).format(date);
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(date);
+}
+
+/** `dayLabel` for the middle of a sentence: "peak tomorrow", "peak Friday". */
+export function dayPhrase(key: string, today: string): string {
+  const label = dayLabel(key, today);
+  return label === "Today" || label === "Tomorrow" ? label.toLowerCase() : label;
+}

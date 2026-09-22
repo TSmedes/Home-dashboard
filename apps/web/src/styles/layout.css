@@ -1,24 +1,86 @@
 /* ---------------------------------------------------------------------------
    Layout.
 
-   No card kit: widgets are not identical rounded boxes with identical shadows.
-   A quiet surface with a 3px radius and a hairline edge is the default, and the
-   clock deliberately has none of it - sitting directly on the background is
-   what makes it read as the primary object on the wall. On a 7.9" panel that
-   restraint is functional as well as aesthetic; card chrome would eat around a
-   seventh of the usable area.
+   Bento: each widget is a tile with generous corners, tinted by what it is,
+   with no border and no shadow - the tint alone separates it from the ground.
+   Inside a tile, anything you can touch is a softer, lighter shape on top of
+   the tint (a row, a pill, a track), so what is interactive reads at a glance.
 --------------------------------------------------------------------------- */
 
 .dashboard {
   height: 100%;
-  padding: var(--space-4);
-  padding: max(var(--space-4), env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right))
-    max(var(--space-4), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
+}
+
+/* --- Pages ----------------------------------------------------------------
+   Pages sit side by side in one native scroller that snaps a page at a time.
+   Each page carries its own margins, so the gap between two pages as they
+   slide past is the same as the gap round the edge of one. */
+
+.pager {
+  display: flex;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.pager::-webkit-scrollbar {
+  display: none;
+}
+
+.pager--single {
+  overflow-x: hidden;
+}
+
+.pager__page {
+  flex: 0 0 100%;
+  height: 100%;
+  padding: 14px;
+  padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+    max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Sits in the bottom margin, below the tiles, so it never covers one. */
+.pager__dots {
+  position: fixed;
+  bottom: max(1px, calc(env(safe-area-inset-bottom) - 12px));
+  left: 50%;
+  z-index: 4;
+  display: flex;
+  transform: translateX(-50%);
+}
+
+.pager__dot {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 14px;
+  padding: 0;
+}
+
+.pager__dot::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  opacity: 0.35;
+  transition: opacity 200ms ease, width 200ms ease;
+}
+
+.pager__dot[aria-current="page"]::after {
+  width: 16px;
+  border-radius: var(--radius-pill);
+  opacity: 0.9;
 }
 
 .grid {
   display: grid;
-  gap: var(--space-4);
+  gap: 14px;
   height: 100%;
 }
 
@@ -32,7 +94,7 @@
 /* A shared row: whichever of its widgets are switched on split the width. */
 .grid__band {
   display: flex;
-  gap: var(--space-4);
+  gap: 14px;
   min-width: 0;
   min-height: 0;
 }
@@ -50,15 +112,26 @@
 }
 
 .surface {
-  background: var(--surface);
-  border: var(--edge-width) solid var(--edge);
-  border-radius: var(--radius);
-  padding: var(--space-4);
+  background: var(--tile, var(--surface));
+  border-radius: var(--radius-tile);
+  padding: 22px;
 }
+
+.widget--clock { --tile: var(--tint-clock); }
+.widget--weather { --tile: var(--tint-weather); }
+.widget--lights { --tile: var(--tint-lights); }
+.widget--calendar { --tile: var(--tint-calendar); }
+.widget--tasks { --tile: var(--tint-tasks); }
+.widget--river { --tile: var(--tint-river); }
+.widget--sunmoon { --tile: var(--tint-sun); }
+.widget--bins { --tile: var(--tint-bins); }
+.widget--countdowns { --tile: var(--tint-countdowns); }
+.widget--commute { --tile: var(--tint-commute); }
+.widget--spotify { --tile: var(--tint-spotify); }
 
 .widget__head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
   margin-bottom: var(--space-3);
@@ -66,9 +139,9 @@
 
 .widget__title {
   margin: 0;
-  font-family: var(--font-text);
-  font-size: var(--size-md);
-  font-weight: 500;
+  font-size: 1.1875rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
   line-height: 1.1;
   color: var(--ink);
 }
@@ -79,16 +152,19 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  font-family: var(--font-display);
+  padding: 4px 10px;
   font-size: var(--size-xs);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--ink-3);
+  color: var(--ink-2);
   white-space: nowrap;
+  background: var(--row);
+  border-radius: var(--radius-pill);
 }
 
 .widget__stale-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--warn);
 }
@@ -99,6 +175,8 @@
   gap: var(--space-2);
   justify-content: center;
   height: 100%;
+  font-size: var(--size-md);
+  font-weight: 500;
   color: var(--ink-2);
 }
 
@@ -107,8 +185,8 @@
 }
 
 .widget-message__detail {
-  font-family: var(--font-display);
   font-size: var(--size-sm);
+  font-weight: 400;
   color: var(--ink-3);
 }
 
@@ -117,37 +195,33 @@
 .clock {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
   height: 100%;
 }
 
 .clock__time {
-  font-family: var(--font-display);
   font-size: 4rem;
-  font-size: min(26cqw, 38cqh);
-  font-stretch: 112%;
-  font-weight: 440;
-  letter-spacing: -0.025em;
-  line-height: 0.92;
+  font-size: min(26cqw, 40cqh);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.88;
   color: var(--ink);
 }
 
 .clock__meridiem {
-  font-size: 0.26em;
-  font-stretch: 100%;
-  font-weight: 500;
+  font-size: 0.24em;
+  font-weight: 650;
   letter-spacing: 0;
   color: var(--ink-3);
-  margin-left: 0.18em;
+  margin-left: 0.3em;
 }
 
 .clock__date {
-  font-family: var(--font-text);
   font-size: 1.25rem;
-  font-size: clamp(1rem, 7cqh, 2.1rem);
-  font-weight: 400;
+  font-size: clamp(1rem, 8cqh, 2rem);
+  font-weight: 500;
   color: var(--ink-2);
-  margin-top: 0.35em;
+  margin-top: 0.45em;
 }
 
 .clock--xl {
@@ -159,13 +233,11 @@
 .clock--xl .clock__time {
   font-size: 9rem;
   font-size: min(22cqw, 55cqh);
-  font-weight: 380; /* lighter as it grows, so it does not shout at 3am */
-  font-stretch: 108%;
+  font-weight: 560; /* lighter as it grows, so it does not shout at 3am */
 }
 
 .clock--xl .clock__date {
   font-size: clamp(1.1rem, 6cqh, 2.4rem);
-  color: var(--ink-2);
 }
 
 /* --- Weather -------------------------------------------------------------- */
@@ -197,34 +269,32 @@
 }
 
 .weather__temp {
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 17cqh, 3.4rem);
-  font-stretch: 108%;
-  font-weight: 460;
+  font-size: clamp(2rem, 16cqh, 3.6rem);
+  font-weight: 700;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.04em;
   color: var(--ink);
 }
 
 .weather__degree {
   font-size: 0.42em;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0;
   color: var(--ink-3);
   margin-left: 0.1em;
 }
 
 .weather__label {
-  font-family: var(--font-text);
   font-size: var(--size-base);
+  font-weight: 500;
   color: var(--ink-2);
-  margin-top: 0.15em;
+  margin-top: 0.2em;
 }
 
 .weather__range {
   display: flex;
   gap: var(--space-4);
   margin: 0 0 0 auto;
-  font-family: var(--font-display);
   font-size: var(--size-sm);
 }
 
@@ -243,7 +313,7 @@
 .weather__range dd {
   margin: 0;
   color: var(--ink);
-  font-weight: 500;
+  font-weight: 650;
   font-size: var(--size-md);
 }
 
@@ -264,36 +334,41 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: 5px;
+  gap: 6px;
+  height: 100%;
   min-width: 0;
 }
 
 .weather__hour-temp {
-  font-family: var(--font-display);
   font-size: var(--size-xs);
+  font-weight: 600;
   color: var(--ink-2);
 }
 
-/* A baseline rule rather than a filled track: an empty column then reads as
-   "no rain", where a tinted block read as a full bar. */
+/* A pill track with a fill that rises from the bottom: an empty track reads
+   as "no rain" without looking like a missing bar. It takes whatever height
+   the tile has left, so a short tile never pushes the strip into the reading. */
 .weather__track {
   display: flex;
+  flex: 1 1 auto;
   align-items: flex-end;
   width: 100%;
-  max-width: 22px;
-  height: clamp(16px, 20cqh, 42px);
-  border-bottom: var(--edge-width) solid var(--edge);
+  max-width: 20px;
+  min-height: 12px;
+  max-height: 64px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--track);
 }
 
 .weather__bar {
   width: 100%;
   min-height: 0;
-  border-radius: 1px;
+  border-radius: var(--radius-pill);
   background: var(--wet);
 }
 
 .weather__hour-label {
-  font-family: var(--font-display);
   font-size: var(--size-xs);
   color: var(--ink-3);
 }
@@ -304,20 +379,17 @@
   justify-content: space-between;
   gap: var(--space-3);
   margin: 0;
-  padding-top: var(--space-3);
-  border-top: var(--edge-width) solid var(--edge);
-  font-family: var(--font-text);
-  font-size: var(--size-base);
+  font-size: var(--size-sm);
+  font-weight: 500;
   color: var(--ink-2);
 }
 
 .weather__chance {
   color: var(--wet);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .weather__sun {
-  font-family: var(--font-display);
   font-size: var(--size-sm);
   color: var(--ink-3);
   white-space: nowrap;
@@ -342,14 +414,14 @@
 
 .boot__headline {
   margin: 0;
-  font-family: var(--font-text);
   font-size: var(--size-lg);
+  font-weight: 650;
+  letter-spacing: -0.01em;
   color: var(--ink);
 }
 
 .boot__detail {
   margin: 0;
-  font-family: var(--font-display);
   font-size: var(--size-sm);
   color: var(--ink-3);
 }
@@ -359,21 +431,22 @@
   position: fixed;
   right: var(--space-3);
   bottom: var(--space-3);
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--warn);
 }
 
 /* --- Lights ---------------------------------------------------------------
-   Amber is the semantic accent for "on": a lit bulb reads as lit, and the
-   same colour marks an event happening now elsewhere on the dashboard.
+   Each bulb is a row you can press. The switch on the right is the bulb's
+   state; amber is the semantic accent for "on", and the knob's position says
+   the same thing without relying on colour.
 --------------------------------------------------------------------------- */
 
 .lights {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -383,7 +456,9 @@
 .light {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  padding: 4px 14px;
+  background: var(--row);
+  border-radius: var(--radius-inner);
 }
 
 .light__toggle {
@@ -391,34 +466,51 @@
   align-items: center;
   gap: var(--space-3);
   width: 100%;
-  min-height: 44px; /* thumb-sized, per Apple's touch guidance */
+  min-height: 48px; /* thumb-sized, per Apple's touch guidance */
   text-align: left;
-  border-radius: var(--radius);
-}
-
-.light__toggle:active:not(:disabled) {
-  background: var(--press);
+  border-radius: var(--radius-inner);
 }
 
 .light__toggle:disabled {
   cursor: default;
 }
 
-/* Hollow when off, filled and haloed when on - readable at a glance and
-   without relying on colour alone. */
+.light__toggle:active:not(:disabled) .light__bulb {
+  transform: scale(0.94);
+}
+
+/* Drawn as a switch: track plus knob. */
 .light__bulb {
+  position: relative;
+  order: 2;
   flex: none;
-  width: 15px;
-  height: 15px;
-  border: 2px solid var(--ink-3);
+  width: 46px;
+  height: 28px;
+  margin-left: auto;
+  border-radius: var(--radius-pill);
+  background: var(--track);
+  transition: background-color 180ms ease, transform 120ms ease;
+}
+
+.light__bulb::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  background: var(--knob);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
+  transition: transform 180ms ease;
 }
 
 .light[data-on="true"] .light__bulb {
   background: var(--lit);
-  border-color: var(--lit);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--lit) 22%, transparent);
+}
+
+.light[data-on="true"] .light__bulb::after {
+  transform: translateX(18px);
 }
 
 .light[data-reachable="false"] {
@@ -426,8 +518,13 @@
 }
 
 .light__name {
-  font-family: var(--font-text);
-  font-size: var(--size-md);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--size-base);
+  font-weight: 600;
   line-height: 1.2;
   color: var(--ink);
 }
@@ -436,10 +533,11 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding-left: calc(15px + var(--space-3));
 }
 
 .light__dim input[type="range"] {
+  /* A sideways drag on the slider dims the bulb; it must never turn the page. */
+  touch-action: none;
   flex: 1;
   min-width: 0;
   height: 44px; /* the touch target, not the visible track */
@@ -450,69 +548,78 @@
 }
 
 .light__dim input[type="range"]::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--edge);
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--track);
 }
 
 .light__dim input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 22px;
-  height: 22px;
-  margin-top: -9px;
-  border: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -8px;
+  border: 3px solid var(--lit);
   border-radius: 50%;
-  background: var(--lit);
+  background: var(--knob);
 }
 
 .light__dim input[type="range"]::-moz-range-track {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--edge);
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--track);
 }
 
-.light__dim input[type="range"]::-moz-range-thumb {
-  width: 22px;
-  height: 22px;
-  border: none;
-  border-radius: 50%;
+.light__dim input[type="range"]::-moz-range-progress {
+  height: 8px;
+  border-radius: var(--radius-pill);
   background: var(--lit);
 }
 
+.light__dim input[type="range"]::-moz-range-thumb {
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--lit);
+  border-radius: 50%;
+  background: var(--knob);
+}
+
 .light__dim input[type="range"]:disabled::-webkit-slider-thumb {
-  background: var(--ink-3);
+  border-color: var(--ink-3);
 }
 
 .light__dim input[type="range"]:disabled::-moz-range-thumb {
+  border-color: var(--ink-3);
+}
+
+.light__dim input[type="range"]:disabled::-moz-range-progress {
   background: var(--ink-3);
 }
 
 .light__percent {
-  min-width: 3.4em;
-  font-family: var(--font-display);
+  min-width: 3.2em;
   font-size: var(--size-sm);
+  font-weight: 600;
   text-align: right;
   color: var(--ink-2);
 }
 
 .light__offline {
-  padding-left: calc(15px + var(--space-3));
-  font-family: var(--font-display);
+  padding-bottom: var(--space-3);
   font-size: var(--size-sm);
   color: var(--ink-3);
 }
 
 /* --- Agenda ---------------------------------------------------------------
-   Day headings carry the structure, so the widget needs no title of its own.
-   An event happening now takes the amber "now" accent, the same colour as a
-   lit bulb.
+   Day headings carry the structure. An event happening now is filled with
+   ink, the strongest shape on the tile, so it is found from across the room.
 --------------------------------------------------------------------------- */
 
 .agenda {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
   height: 100%;
   min-height: 0;
   overflow-y: auto;
@@ -521,14 +628,16 @@
 
 .agenda__label {
   margin: 0 0 var(--space-1);
-  font-family: var(--font-display);
   font-size: var(--size-sm);
-  font-weight: 600;
+  font-weight: 650;
   line-height: 1.2;
   color: var(--ink-2);
 }
 
 .agenda__items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -539,28 +648,31 @@
   grid-template-columns: 4.3em minmax(0, 1fr);
   gap: var(--space-3);
   align-items: baseline;
-  padding: var(--space-2) 0 var(--space-2) var(--space-3);
-  border-left: 3px solid transparent;
-}
-
-.agenda__item + .agenda__item {
-  border-top: var(--edge-width) solid var(--edge);
+  padding: 10px 14px;
+  border-radius: var(--radius-inner);
 }
 
 .agenda__item[data-now="true"] {
-  border-left-color: var(--lit);
+  background: var(--now-fill);
 }
 
 .agenda__when {
-  font-family: var(--font-display);
   font-size: var(--size-sm);
+  font-weight: 600;
   color: var(--ink-2);
   white-space: nowrap;
 }
 
-.agenda__item[data-now="true"] .agenda__when {
-  color: var(--ink);
-  font-weight: 600;
+.agenda__item[data-now="true"] .agenda__when,
+.agenda__item[data-now="true"] .agenda__title {
+  color: var(--now-ink);
+}
+
+.agenda__item[data-now="true"] .agenda__until,
+.agenda__item[data-now="true"] .agenda__meridiem,
+.agenda__item[data-now="true"] .agenda__location {
+  color: var(--now-ink);
+  opacity: 0.72;
 }
 
 .agenda__until {
@@ -584,8 +696,8 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  font-family: var(--font-text);
-  font-size: var(--size-md);
+  font-size: var(--size-base);
+  font-weight: 600;
   line-height: 1.25;
   color: var(--ink);
 }
@@ -593,7 +705,6 @@
 .agenda__location {
   margin-top: 2px;
   overflow: hidden;
-  font-family: var(--font-display);
   font-size: var(--size-xs);
   color: var(--ink-3);
   white-space: nowrap;
@@ -603,7 +714,7 @@
 /* --- Tasks ----------------------------------------------------------------
    Ticking a task starts a short undo window rather than completing it at
    once, because a wall panel gets brushed past. "Due today" takes the amber
-   "now" accent as a dot - amber is too light to carry text on white.
+   "on" accent as a dot - amber is too light to carry text.
 --------------------------------------------------------------------------- */
 
 .tasks {
@@ -633,7 +744,7 @@
 }
 
 .task + .task {
-  border-top: var(--edge-width) solid var(--edge);
+  border-top: var(--edge-width) solid var(--line);
 }
 
 .task__check {
@@ -641,7 +752,7 @@
   place-items: center;
   width: 44px;
   height: 44px;
-  border-radius: var(--radius);
+  border-radius: 50%;
 }
 
 .task__check:active {
@@ -651,11 +762,11 @@
 .task__box {
   display: grid;
   place-items: center;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border: 2px solid var(--ink-3);
   border-radius: 50%;
-  color: var(--surface);
+  color: var(--ground);
   transition: background-color 160ms ease, border-color 160ms ease;
 }
 
@@ -664,8 +775,8 @@
 }
 
 .task[data-finishing="true"] .task__box {
-  background: var(--ink-2);
-  border-color: var(--ink-2);
+  background: var(--ink);
+  border-color: var(--ink);
 }
 
 .task__body {
@@ -673,7 +784,7 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
-  padding-top: 9px; /* centres the first line on the 44px check */
+  padding-top: 10px; /* centres the first line on the 44px check */
 }
 
 .task__title {
@@ -681,8 +792,8 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  font-family: var(--font-text);
-  font-size: var(--size-md);
+  font-size: var(--size-base);
+  font-weight: 600;
   line-height: 1.25;
   color: var(--ink);
 }
@@ -697,7 +808,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
-  font-family: var(--font-display);
   font-size: var(--size-xs);
   color: var(--ink-3);
 }
@@ -709,20 +819,20 @@
 }
 
 .task__due[data-tone="today"] {
-  font-weight: 600;
+  font-weight: 650;
   color: var(--ink);
 }
 
 .task__due[data-tone="today"]::before {
   content: "";
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--lit);
 }
 
 .task__due[data-tone="overdue"] {
-  font-weight: 600;
+  font-weight: 650;
   color: var(--warn);
 }
 
@@ -730,7 +840,7 @@
 .task__undo {
   margin: -12px -14px;
   padding: 12px 14px;
-  font-weight: 600;
+  font-weight: 650;
   color: var(--ink);
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -738,27 +848,27 @@
 
 .tasks__empty {
   margin: 0;
-  font-family: var(--font-text);
   font-size: var(--size-md);
+  font-weight: 500;
   color: var(--ink-2);
 }
 
 .tasks__error {
   margin: 0;
-  font-family: var(--font-display);
   font-size: var(--size-sm);
+  font-weight: 600;
   color: var(--warn);
 }
 
-/* Lines up with the task titles rather than the check column. */
 .tasks__add {
   align-self: flex-start;
   min-height: 44px;
-  padding-left: calc(44px + var(--space-1));
-  font-family: var(--font-display);
+  padding: 0 18px;
   font-size: var(--size-sm);
-  font-weight: 600;
+  font-weight: 650;
   color: var(--ink-2);
+  background: var(--row);
+  border-radius: var(--radius-pill);
 }
 
 .tasks__add:active {
@@ -775,13 +885,13 @@
   flex: 1;
   min-width: 0;
   min-height: 44px;
-  padding: 0 var(--space-3);
+  padding: 0 18px;
   font-family: var(--font-text);
   font-size: var(--size-base); /* 17px: under 16px, iOS zooms the page on focus */
   color: var(--ink);
-  background: var(--ground);
-  border: var(--edge-width) solid var(--edge);
-  border-radius: var(--radius);
+  background: var(--row);
+  border: none;
+  border-radius: var(--radius-pill);
 }
 
 .tasks__input::placeholder {
@@ -790,12 +900,11 @@
 
 .tasks__submit {
   min-height: 44px;
-  padding: 0 var(--space-4);
-  font-family: var(--font-display);
-  font-weight: 600;
-  color: var(--surface);
+  padding: 0 18px;
+  font-weight: 650;
+  color: var(--ground);
   background: var(--ink);
-  border-radius: var(--radius);
+  border-radius: var(--radius-pill);
 }
 
 .tasks__submit:disabled {
@@ -805,8 +914,8 @@
 .tasks__cancel {
   min-height: 44px;
   padding: 0 var(--space-2);
-  font-family: var(--font-display);
   font-size: var(--size-sm);
+  font-weight: 600;
   color: var(--ink-2);
 }
 
@@ -825,8 +934,8 @@
    everything healthy stays neutral.
 --------------------------------------------------------------------------- */
 
-/* Top-left is empty background in both the day and night layouts. The safe
-   area keeps it clear of the status bar when run from the Home Screen. */
+/* Sits over the clock tile's rounded corner. The safe area keeps it clear of
+   the status bar when run from the Home Screen. */
 .settings-button {
   position: fixed;
   top: calc(env(safe-area-inset-top, 0px) + 4px);
@@ -859,23 +968,20 @@
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  padding: var(--space-3) var(--space-5);
-  background: var(--surface);
-  border-bottom: var(--edge-width) solid var(--edge);
+  padding: var(--space-4) var(--space-5);
 }
 
 .settings__title {
   margin: 0;
-  font-family: var(--font-text);
-  font-size: var(--size-lg);
-  font-weight: 500;
+  font-size: var(--size-xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--ink);
 }
 
 .settings__notice {
   flex: 1;
   margin: 0;
-  font-family: var(--font-display);
   font-size: var(--size-sm);
   text-align: right;
   color: var(--ink-2);
@@ -897,21 +1003,20 @@
   gap: var(--space-5);
   max-width: 720px;
   margin: 0 auto;
-  padding: var(--space-5) var(--space-5) var(--space-6);
+  padding: var(--space-2) var(--space-5) var(--space-6);
 }
 
 .settings__heading {
-  margin: 0 0 var(--space-2);
-  font-family: var(--font-display);
+  margin: 0 0 var(--space-2) var(--space-4);
   font-size: var(--size-sm);
-  font-weight: 600;
+  font-weight: 650;
   color: var(--ink-2);
 }
 
 .settings__card {
+  overflow: hidden;
   background: var(--surface);
-  border: var(--edge-width) solid var(--edge);
-  border-radius: var(--radius);
+  border-radius: var(--radius-tile);
 }
 
 .settings__card > * + * {
@@ -922,7 +1027,11 @@
 .settings__lead,
 .settings__place,
 .settings__empty {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-5);
+}
+
+.settings__lead {
+  padding-block: var(--space-4);
 }
 
 .settings__row {
@@ -930,7 +1039,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  min-height: 60px;
+  min-height: 64px;
 }
 
 .settings__label {
@@ -938,15 +1047,15 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
-  font-family: var(--font-text);
-  font-size: var(--size-md);
+  font-size: var(--size-base);
+  font-weight: 600;
   line-height: 1.25;
   color: var(--ink);
 }
 
 .settings__detail {
-  font-family: var(--font-display);
   font-size: var(--size-xs);
+  font-weight: 400;
   line-height: 1.35;
   color: var(--ink-3);
 }
@@ -968,9 +1077,8 @@
 
 .settings__lead p {
   margin: 0 0 var(--space-3);
-  font-family: var(--font-text);
-  font-size: var(--size-md);
-  line-height: 1.35;
+  font-size: var(--size-base);
+  line-height: 1.4;
   color: var(--ink);
 }
 
@@ -996,7 +1104,7 @@
   justify-content: space-between;
   gap: var(--space-4);
   width: 100%;
-  min-height: 60px;
+  min-height: 64px;
   text-align: left;
 }
 
@@ -1006,42 +1114,40 @@
 
 .settings__choose {
   flex: none;
-  font-family: var(--font-display);
+  padding: 6px 14px;
   font-size: var(--size-sm);
-  font-weight: 600;
-  color: var(--ink-2);
+  font-weight: 650;
+  color: var(--ink);
+  background: var(--ground);
+  border-radius: var(--radius-pill);
 }
 
 .settings__empty {
   margin: 0;
-  font-family: var(--font-display);
   font-size: var(--size-sm);
   color: var(--ink-3);
 }
 
 .settings__error {
   margin: var(--space-2) 0 0;
-  font-family: var(--font-display);
   font-size: var(--size-sm);
+  font-weight: 600;
   color: var(--warn);
 }
 
 .button {
   min-height: 44px;
-  padding: 0 var(--space-4);
-  font-family: var(--font-display);
+  padding: 0 20px;
   font-size: var(--size-sm);
-  font-weight: 600;
+  font-weight: 650;
   color: var(--ink);
-  background: var(--surface);
-  border: var(--edge-width) solid var(--edge);
-  border-radius: var(--radius);
+  background: var(--ground);
+  border-radius: var(--radius-pill);
 }
 
 .button--primary {
-  color: var(--surface);
+  color: var(--ground);
   background: var(--ink);
-  border-color: var(--ink);
 }
 
 .button:disabled {
@@ -1056,18 +1162,21 @@
 .field {
   width: 100%;
   min-height: 44px;
-  padding: 0 var(--space-3);
+  padding: 0 18px;
   font-family: var(--font-text);
   font-size: var(--size-base);
   color: var(--ink);
   background: var(--ground);
-  border: var(--edge-width) solid var(--edge);
-  border-radius: var(--radius);
+  border: var(--edge-width) solid transparent;
+  border-radius: var(--radius-pill);
+}
+
+.field:focus {
+  border-color: var(--ink-3);
 }
 
 .field--time {
   width: auto;
-  font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1085,8 +1194,8 @@
   grid-area: 1 / 1;
   width: 50px;
   height: 30px;
-  border-radius: 15px;
-  background: var(--edge);
+  border-radius: var(--radius-pill);
+  background: var(--track);
   transition: background-color 160ms ease;
 }
 
@@ -1095,10 +1204,10 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1.5px var(--ink-3);
+  background: var(--knob);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
   transform: translateX(-10px);
-  transition: transform 160ms ease, box-shadow 160ms ease;
+  transition: transform 160ms ease;
 }
 
 .switch[aria-checked="true"]::before {
@@ -1106,32 +1215,29 @@
 }
 
 .switch[aria-checked="true"] .switch__knob {
-  box-shadow: none;
+  background: var(--surface);
   transform: translateX(10px);
 }
 
 .segmented {
   display: inline-flex;
-  overflow: hidden;
-  border: var(--edge-width) solid var(--edge);
-  border-radius: var(--radius);
+  gap: 2px;
+  padding: 3px;
+  background: var(--ground);
+  border-radius: var(--radius-pill);
 }
 
 .segmented__option {
-  min-height: 44px;
+  min-height: 40px;
   padding: 0 var(--space-4);
-  font-family: var(--font-display);
   font-size: var(--size-sm);
-  font-weight: 600;
+  font-weight: 650;
   color: var(--ink-2);
-}
-
-.segmented__option + .segmented__option {
-  border-left: var(--edge-width) solid var(--edge);
+  border-radius: var(--radius-pill);
 }
 
 .segmented__option[aria-checked="true"] {
-  color: var(--surface);
+  color: var(--ground);
   background: var(--ink);
 }
 
@@ -1140,7 +1246,6 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-family: var(--font-display);
   font-size: var(--size-sm);
   color: var(--ink-2);
   white-space: nowrap;
@@ -1148,8 +1253,8 @@
 
 .status::before {
   content: "";
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--ink-3);
 }
@@ -1193,4 +1298,596 @@
   .lights {
     gap: var(--space-1);
   }
+
+  .surface {
+    padding: 18px;
+  }
+}
+
+/* --- Settings: pages and Spotify ------------------------------------------ */
+
+.settings__group > * + * {
+  border-top: var(--edge-width) solid var(--edge);
+}
+
+.settings__group + .settings__group {
+  border-top: var(--edge-width) solid var(--edge);
+}
+
+.settings__subhead {
+  margin: 0;
+  padding: var(--space-3) var(--space-5) var(--space-1);
+  font-size: var(--size-xs);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.settings__connect {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.settings__connect .field {
+  width: 100%;
+}
+
+.settings__lead .button + * {
+  margin-top: var(--space-3);
+}
+
+/* --- Shared list rows for the new widgets --------------------------------- */
+
+.bins__list,
+.countdowns,
+.commute__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+/* --- Sun & moon ------------------------------------------------------------ */
+
+.sunmoon {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-4);
+  height: 100%;
+}
+
+.sunmoon__sun {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-4);
+  margin: 0;
+}
+
+.sunmoon__daylight {
+  grid-column: 1 / -1;
+}
+
+.sunmoon__meridiem {
+  margin-left: 0.2em;
+  font-size: 0.6em;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink-2);
+}
+
+.sunmoon__sun dt {
+  font-size: var(--size-xs);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.sunmoon__sun dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-3);
+  margin: 2px 0 0;
+  font-size: var(--size-lg);
+  font-weight: 650;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.sunmoon__change {
+  font-size: var(--size-sm);
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-2);
+}
+
+.sunmoon__moonrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--row);
+  border-radius: var(--radius-inner);
+}
+
+.sunmoon__moon {
+  flex: none;
+  /* Moonlight is pale in both themes; the shadowed part is a soft grey. */
+  --moon-lit: #fbf3dc;
+}
+
+:root[data-theme="dark"] .sunmoon__moon {
+  --moon-lit: var(--ink);
+}
+
+.sunmoon__shadow {
+  fill: var(--ink-3);
+  opacity: 0.45;
+}
+
+.sunmoon__lit {
+  fill: var(--moon-lit);
+}
+
+.sunmoon__phase,
+.sunmoon__detail {
+  margin: 0;
+}
+
+.sunmoon__phase {
+  font-size: var(--size-base);
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.sunmoon__detail {
+  font-size: var(--size-sm);
+  color: var(--ink-2);
+}
+
+/* --- Bin day --------------------------------------------------------------- */
+
+.bins {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+/* The one thing this tile exists to say, on the evening it matters. */
+.bins__callout {
+  flex: none;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--size-base);
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--now-ink);
+  background: var(--now-fill);
+  border-radius: var(--radius-inner);
+}
+
+.bins__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--row);
+  border-radius: var(--radius-inner);
+}
+
+.bins__name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--size-base);
+  font-weight: 600;
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bins__when {
+  flex: none;
+  font-size: var(--size-sm);
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.bins__row[data-urgent="true"] .bins__when {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.bins__moved {
+  color: var(--ink-3);
+}
+
+/* --- Countdowns ------------------------------------------------------------ */
+
+.countdown {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  background: var(--row);
+  border-radius: var(--radius-inner);
+}
+
+.countdown__days {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  min-width: 3.2em;
+  font-size: var(--size-xl);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.countdown[data-today="true"] .countdown__days {
+  font-size: var(--size-md);
+}
+
+.countdown__unit {
+  margin-top: 2px;
+  font-size: var(--size-xs);
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink-3);
+}
+
+.countdown__what {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.countdown__name {
+  overflow: hidden;
+  font-size: var(--size-base);
+  font-weight: 600;
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.countdown__date {
+  font-size: var(--size-sm);
+  color: var(--ink-2);
+}
+
+/* --- River ----------------------------------------------------------------- */
+
+.river {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.river__now {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+
+.river__level {
+  font-size: clamp(1.8rem, 14cqh, 3rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+}
+
+.river__state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.river__category {
+  font-size: var(--size-sm);
+  font-weight: 650;
+  color: var(--ink-2);
+}
+
+.river__category[data-alert="true"] {
+  color: var(--warn);
+}
+
+.river__trend {
+  font-size: var(--size-sm);
+  color: var(--ink-2);
+}
+
+.river__chart {
+  flex: 1;
+  width: 100%;
+  min-height: 36px;
+  overflow: visible;
+}
+
+.river__observed,
+.river__forecast {
+  fill: none;
+  stroke: var(--wet);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.river__forecast {
+  stroke-dasharray: 4 5;
+  opacity: 0.75;
+}
+
+.river__threshold {
+  stroke: var(--warn);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.river__detail {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: var(--size-sm);
+  color: var(--ink-2);
+}
+
+/* --- Commute --------------------------------------------------------------- */
+
+.commute {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  height: 100%;
+  min-height: 0;
+}
+
+.commute__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 var(--space-3);
+  align-items: baseline;
+  padding: var(--space-3) var(--space-4);
+  background: var(--row);
+  border-radius: var(--radius-inner);
+}
+
+.commute__name {
+  overflow: hidden;
+  font-size: var(--size-base);
+  font-weight: 600;
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commute__time {
+  font-size: var(--size-lg);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.commute__detail {
+  grid-column: 1 / -1;
+  font-size: var(--size-sm);
+  color: var(--ink-2);
+}
+
+.commute__row[data-heavy="true"] .commute__time,
+.commute__row[data-heavy="true"] .commute__detail {
+  color: var(--warn);
+}
+
+.commute__failed {
+  margin: 0;
+  font-size: var(--size-sm);
+  color: var(--ink-3);
+}
+
+/* --- Spotify --------------------------------------------------------------- */
+
+.spotify {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.spotify__track {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  min-height: 0;
+}
+
+.spotify__art {
+  flex: none;
+  width: clamp(56px, 32cqh, 104px);
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: var(--track);
+  border-radius: var(--radius-inner);
+}
+
+.spotify__text {
+  min-width: 0;
+}
+
+.spotify__text p {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spotify__title {
+  font-size: var(--size-md);
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.spotify__artist {
+  font-size: var(--size-base);
+  color: var(--ink-2);
+}
+
+.spotify__text .spotify__device {
+  margin-top: var(--space-1);
+  font-size: var(--size-xs);
+  color: var(--ink-3);
+}
+
+.spotify__bar {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  background: var(--track);
+  border-radius: var(--radius-pill);
+}
+
+.spotify__bar > span {
+  display: block;
+  height: 100%;
+  background: var(--ink-2);
+  border-radius: inherit;
+  transition: width 1s linear;
+}
+
+.spotify__times {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: var(--size-xs);
+  color: var(--ink-3);
+}
+
+.spotify__controls {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+.spotify__controls button {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  color: var(--ink);
+  border-radius: 50%;
+}
+
+.spotify__controls button:active {
+  background: var(--press);
+}
+
+.spotify__controls .spotify__play {
+  color: var(--surface);
+  background: var(--ink);
+}
+
+.spotify__error {
+  margin: 0;
+  font-size: var(--size-sm);
+  color: var(--warn);
+}
+
+@container (max-height: 220px) {
+  .spotify__controls,
+  .spotify__times,
+  .sunmoon__moonrow .sunmoon__detail {
+    display: none;
+  }
+}
+
+/* --- River: several gauges ------------------------------------------------- */
+
+.river__rows {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+/* Rows share the tile's height, so three gauges fill it and six still fit. */
+.river__row {
+  flex: 1 1 0;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(48px, 30%) auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  background: var(--row);
+  border-radius: var(--radius-inner);
+}
+
+.river__row-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: var(--size-base);
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.river__row-sub {
+  overflow: hidden;
+  font-size: var(--size-xs);
+  font-weight: 500;
+  color: var(--ink-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.river__row-chart {
+  width: 100%;
+  height: min(48px, 100%);
+  overflow: visible;
+}
+
+.river__row-level {
+  font-size: var(--size-lg);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.river__failed {
+  margin: 0;
+  font-size: var(--size-sm);
+  color: var(--ink-3);
 }

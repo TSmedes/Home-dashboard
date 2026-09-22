@@ -27,6 +27,20 @@ function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
+const tints = [
+  "tint-clock",
+  "tint-weather",
+  "tint-lights",
+  "tint-calendar",
+  "tint-tasks",
+  "tint-river",
+  "tint-sun",
+  "tint-bins",
+  "tint-countdowns",
+  "tint-commute",
+  "tint-spotify",
+];
+
 const themes = {
   day: palette(":root"),
   night: palette(':root[data-theme="dark"]'),
@@ -39,7 +53,7 @@ const themes = {
  */
 describe.each(Object.entries(themes))("%s palette", (_name, theme) => {
   it("defines every colour role", () => {
-    for (const token of ["ground", "surface", "edge", "ink", "ink-2", "ink-3", "lit", "wet", "warn"]) {
+    for (const token of ["ground", "surface", "edge", "ink", "ink-2", "ink-3", "lit", "wet", "warn", ...tints]) {
       expect(theme[token], `--${token} missing`).toMatch(/^#[0-9a-f]{6}$/i);
     }
   });
@@ -64,6 +78,30 @@ describe.each(Object.entries(themes))("%s palette", (_name, theme) => {
 
   it("the rain accent stays legible as text on a surface", () => {
     expect(contrast(theme.wet!, theme.surface!)).toBeGreaterThanOrEqual(3);
+  });
+
+  // Every widget sits on its own tint, so each tint must carry the full text
+  // hierarchy as well as a plain surface does.
+  it.each(tints)("text hierarchy holds on %s", (tint) => {
+    expect(contrast(theme.ink!, theme[tint]!)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(theme["ink-2"]!, theme[tint]!)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(theme["ink-3"]!, theme[tint]!)).toBeGreaterThanOrEqual(3);
+  });
+
+  it("an event happening now is legible", () => {
+    expect(contrast(theme["now-ink"]!, theme["now-fill"]!)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("overdue stays legible on the tasks tile", () => {
+    expect(contrast(theme.warn!, theme["tint-tasks"]!)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("rain stays legible on the weather tile", () => {
+    expect(contrast(theme.wet!, theme["tint-weather"]!)).toBeGreaterThanOrEqual(3);
+  });
+
+  it("each tile is distinguishable from the background", () => {
+    for (const tint of tints) expect(contrast(theme[tint]!, theme.ground!), tint).not.toBe(1);
   });
 
   it("the surface is distinguishable from the background", () => {
