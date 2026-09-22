@@ -6,7 +6,7 @@ import { AddWidgetPicker } from "./AddWidgetPicker.js";
 import { EditableGrid } from "./EditableGrid.js";
 import { EditSelection } from "./EditSelection.js";
 import { EditToolbar } from "./EditToolbar.js";
-import { addWidget, onPage } from "./mutations.js";
+import { addWidget, nextPageNumber, onPage, pageNumbers, removePage } from "./mutations.js";
 
 /**
  * The dashboard, being arranged.
@@ -58,7 +58,17 @@ export function EditSurface() {
 
   return (
     <div className="edit" role="region" aria-label="Editing the dashboard layout">
-      <EditToolbar api={api} state={state} onAdd={() => setAdding(true)} />
+      <EditToolbar
+        api={api}
+        state={state}
+        onAdd={() => setAdding(true)}
+        onAddPage={() => api.setPage(nextPageNumber(profile.widgets))}
+        onRemovePage={() => {
+          const others = pageNumbers(profile.widgets, state.page).filter((n) => n !== state.page);
+          change((list) => removePage(list, state.page));
+          if (others[0] !== undefined) api.setPage(others[0]);
+        }}
+      />
       <div className="edit__stage">
         {widgets.length === 0 ? (
           <p className="edit__empty">This page is empty. Add a widget to put something on it.</p>
@@ -79,6 +89,7 @@ export function EditSurface() {
         <EditSelection
           widgets={widgets}
           selected={selected}
+          pages={pageNumbers(profile.widgets, state.page)}
           onChange={change}
           onRemoved={() => api.select(null)}
         />

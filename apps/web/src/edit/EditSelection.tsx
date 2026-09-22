@@ -1,12 +1,14 @@
 import type { WidgetInstance } from "@home-dash/shared";
 import { WIDGET_NAMES } from "../widgets/names.js";
 import { blocksOf, clampResize, rowsOf } from "./grid.js";
-import { placeWidget, removeWidget } from "./mutations.js";
+import { moveToPage, placeWidget, removeWidget } from "./mutations.js";
 
 interface Props {
   /** The page's widgets, which decide how far the selected one can grow. */
   widgets: WidgetInstance[];
   selected: WidgetInstance;
+  /** Every page of this profile, so the widget can be sent to one of them. */
+  pages: number[];
   onChange: (change: (widgets: WidgetInstance[]) => WidgetInstance[]) => void;
   onRemoved: () => void;
 }
@@ -54,7 +56,7 @@ function Stepper({
  * of the group's rectangle - so it says so instead of offering buttons that
  * would do nothing.
  */
-export function EditSelection({ widgets, selected, onChange, onRemoved }: Props) {
+export function EditSelection({ widgets, selected, pages, onChange, onRemoved }: Props) {
   const name = selected.title || WIDGET_NAMES[selected.type] || selected.type;
   const grouped = selected.grid.share || selected.grid.stack !== undefined;
 
@@ -103,6 +105,26 @@ export function EditSelection({ widgets, selected, onChange, onRemoved }: Props)
             canGrow={room("rowSpan", 1)}
           />
         </>
+      )}
+
+      {pages.length > 1 && (
+        <div className="edit-bar__group" role="group" aria-label="Move to page">
+          <span className="edit-stepper__label">Page</span>
+          {pages.map((number, index) => (
+            <button
+              key={number}
+              type="button"
+              className="edit-chip"
+              aria-pressed={number === selected.page}
+              onClick={() => {
+                onChange((list) => moveToPage(list, selected.id, number));
+                onRemoved();
+              }}
+            >
+              {index + 1}
+            </button>
+          ))}
+        </div>
       )}
 
       <span className="edit-selection__spacer" />

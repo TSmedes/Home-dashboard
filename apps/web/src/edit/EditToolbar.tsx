@@ -1,15 +1,6 @@
-import { pagesOf } from "../components/pages.js";
 import { profileLabel } from "../settings/model.js";
 import type { EditApi, EditState } from "./EditContext.js";
-import { onPage } from "./mutations.js";
-
-/** The page numbers in a profile, in order, always including the one being shown. */
-export function pageNumbers(state: EditState): number[] {
-  const widgets = state.draft.profiles[state.profileName]?.widgets ?? [];
-  const numbers = new Set(pagesOf(widgets).map((page) => page.number));
-  numbers.add(state.page);
-  return [...numbers].sort((a, b) => a - b);
-}
+import { onPage, pageNumbers } from "./mutations.js";
 
 /**
  * What edit mode is doing and how to leave it.
@@ -19,9 +10,21 @@ export function pageNumbers(state: EditState): number[] {
  * than a swipe, because swiping is off while editing - a drag across the
  * screen has to mean moving a tile and nothing else.
  */
-export function EditToolbar({ api, state, onAdd }: { api: EditApi; state: EditState; onAdd: () => void }) {
+export function EditToolbar({
+  api,
+  state,
+  onAdd,
+  onAddPage,
+  onRemovePage,
+}: {
+  api: EditApi;
+  state: EditState;
+  onAdd: () => void;
+  onAddPage: () => void;
+  onRemovePage: () => void;
+}) {
   const profiles = Object.keys(state.draft.profiles);
-  const pages = pageNumbers(state);
+  const pages = pageNumbers(state.draft.profiles[state.profileName]?.widgets ?? [], state.page);
   const unsaved = api.changeCount > 0;
 
   return (
@@ -55,7 +58,18 @@ export function EditToolbar({ api, state, onAdd }: { api: EditApi; state: EditSt
             )}
           </button>
         ))}
+        {/* A page is only a number, so adding one is going to the next number.
+            It becomes real the moment something is put on it. */}
+        <button type="button" className="edit-chip" aria-label="Add a page" onClick={onAddPage}>
+          +
+        </button>
       </div>
+
+      {pages.length > 1 && (
+        <button type="button" className="button button--quiet" onClick={onRemovePage}>
+          Remove page
+        </button>
+      )}
 
       <p className="edit-bar__status" role="status">
         {api.error ? (

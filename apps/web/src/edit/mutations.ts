@@ -76,6 +76,20 @@ export function uniqueStackName(widgets: WidgetInstance[], seed: string): string
   }
 }
 
+/**
+ * The pages of a profile, in order, always including the one being looked at.
+ *
+ * A page is only a number on its widgets, so a page with nothing on it does
+ * not exist yet - which is exactly what "add a page" makes: somewhere to put
+ * the next widget. Including `current` is what keeps it on screen until
+ * something lands on it.
+ */
+export function pageNumbers(widgets: WidgetInstance[], current: number): number[] {
+  const numbers = new Set(widgets.map((w) => w.page));
+  numbers.add(current);
+  return [...numbers].sort((a, b) => a - b);
+}
+
 /** The number a new page gets. Gaps are fine - pages are ordered, not indexed. */
 export const nextPageNumber = (widgets: WidgetInstance[]): number =>
   widgets.reduce((max, w) => Math.max(max, w.page), 0) + 1;

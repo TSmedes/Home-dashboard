@@ -14,6 +14,7 @@ import {
   leaveStack,
   moveToPage,
   nextPageNumber,
+  pageNumbers,
   normaliseStack,
   onPage,
   placeWidget,
@@ -341,6 +342,17 @@ describe("adding, removing and pages", () => {
     expect(grid(next, "bins").stack).toBeUndefined();
     // The column that is left closes up.
     expect(grid(next, "lights")).toMatchObject({ row: 1 });
+  });
+
+  it("keeps an added page on screen until something lands on it", () => {
+    // A page is only a number on its widgets, so page 2 does not exist yet.
+    expect(pageNumbers(day, 1)).toEqual([1]);
+    expect(pageNumbers(day, 2)).toEqual([1, 2]);
+  });
+
+  it("lists pages in order, gaps and all", () => {
+    const spread = [...day, widget("river", { col: 1, row: 1 }, 5), widget("sun", { col: 6, row: 1 }, 3)];
+    expect(pageNumbers(spread, 1)).toEqual([1, 3, 5]);
   });
 
   it("takes a page and everything on it away", () => {
