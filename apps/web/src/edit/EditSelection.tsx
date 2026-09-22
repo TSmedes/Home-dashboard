@@ -1,11 +1,14 @@
 import type { WidgetInstance } from "@home-dash/shared";
 import { WIDGET_NAMES } from "../widgets/names.js";
+import { EditGrouping } from "./EditGrouping.js";
 import { blocksOf, clampResize, rowsOf } from "./grid.js";
 import { moveToPage, placeWidget, removeWidget } from "./mutations.js";
 
 interface Props {
   /** The page's widgets, which decide how far the selected one can grow. */
   widgets: WidgetInstance[];
+  /** The whole profile's, for the grouping controls: they splice the real list. */
+  all: WidgetInstance[];
   selected: WidgetInstance;
   /** Every page of this profile, so the widget can be sent to one of them. */
   pages: number[];
@@ -56,7 +59,7 @@ function Stepper({
  * of the group's rectangle - so it says so instead of offering buttons that
  * would do nothing.
  */
-export function EditSelection({ widgets, selected, pages, onChange, onRemoved }: Props) {
+export function EditSelection({ widgets, all, selected, pages, onChange, onRemoved }: Props) {
   const name = selected.title || WIDGET_NAMES[selected.type] || selected.type;
   const grouped = selected.grid.share || selected.grid.stack !== undefined;
 
@@ -106,6 +109,8 @@ export function EditSelection({ widgets, selected, pages, onChange, onRemoved }:
           />
         </>
       )}
+
+      <EditGrouping widgets={all} selected={selected} onChange={onChange} />
 
       {pages.length > 1 && (
         <div className="edit-bar__group" role="group" aria-label="Move to page">

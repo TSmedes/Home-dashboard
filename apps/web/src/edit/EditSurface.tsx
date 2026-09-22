@@ -88,6 +88,7 @@ export function EditSurface() {
       {selected && (
         <EditSelection
           widgets={widgets}
+          all={profile.widgets}
           selected={selected}
           pages={pageNumbers(profile.widgets, state.page)}
           onChange={change}

@@ -8,6 +8,8 @@ import {
   canJoinStack,
   createBand,
   createStack,
+  groupsFor,
+  partnersFor,
   joinBand,
   joinStack,
   leaveBand,
@@ -276,6 +278,55 @@ describe("stacks", () => {
 
   it("leaves a stack that no longer exists alone", () => {
     expect(normaliseStack(day, "right")).toEqual(day);
+  });
+});
+
+describe("what a tile could join", () => {
+  it("offers a band on the page", () => {
+    const withLoose = [...night, widget("todo", { col: 1, row: 7, colSpan: 4, rowSpan: 2 })];
+    expect(groupsFor(withLoose, "todo")).toMatchObject([{ kind: "band", key: "band 5 / span 2" }]);
+  });
+
+  it("offers a stack only when it has room to grow", () => {
+    const withRoom = [...column.slice(1), widget("spare", { col: 1, row: 7, colSpan: 3, rowSpan: 2 })];
+    expect(groupsFor(withRoom, "spare")).toMatchObject([{ kind: "stack", name: "right" }]);
+
+    const noRoom = [...column, widget("busy", { col: 10, row: 7, colSpan: 3, rowSpan: 2 }), widget("far", { col: 1, row: 7, colSpan: 3, rowSpan: 2 })];
+    expect(groupsFor(noRoom, "far")).toEqual([]);
+  });
+
+  it("does not offer a group the tile is already in", () => {
+    expect(groupsFor(column, "lights")).toEqual([]);
+  });
+
+  it("pairs a tile with one covering exactly the same rows", () => {
+    const pair = [
+      widget("a", { col: 1, row: 1, colSpan: 6, rowSpan: 2 }),
+      widget("b", { col: 7, row: 1, colSpan: 6, rowSpan: 2 }),
+      widget("tall", { col: 1, row: 3, colSpan: 12, rowSpan: 2 }),
+    ];
+    expect(partnersFor(pair, "a", "band").map((w) => w.id)).toEqual(["b"]);
+  });
+
+  it("will not pair a tile with one whose rows only start level", () => {
+    const pair = [
+      widget("short", { col: 1, row: 1, colSpan: 6, rowSpan: 2 }),
+      widget("tall", { col: 7, row: 1, colSpan: 6, rowSpan: 4 }),
+    ];
+    expect(partnersFor(pair, "short", "band")).toEqual([]);
+  });
+
+  it("pairs a tile with one in exactly the same columns", () => {
+    const pair = [
+      widget("wide", { col: 1, row: 1, colSpan: 9, rowSpan: 6 }),
+      widget("a", { col: 10, row: 1, colSpan: 3, rowSpan: 2 }),
+      widget("b", { col: 10, row: 3, colSpan: 3, rowSpan: 4 }),
+    ];
+    expect(partnersFor(pair, "a", "stack").map((w) => w.id)).toEqual(["b"]);
+  });
+
+  it("offers nothing to a tile already in a group", () => {
+    expect(partnersFor(column, "lights", "stack")).toEqual([]);
   });
 });
 

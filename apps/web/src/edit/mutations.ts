@@ -321,6 +321,59 @@ export function reorder(widgets: WidgetInstance[], id: string, delta: -1 | 1): W
   return group.kind === "stack" ? normaliseStack(swapped, group.name) : swapped;
 }
 
+// --- What grouping a tile could join ----------------------------------------
+
+/** A band or stack already on this page, named for a menu. */
+export interface GroupOption {
+  /** The block key: `band <rows>` for a band, the stack's name for a stack. */
+  key: string;
+  kind: "band" | "stack";
+  /** What a stack is called in the file; a band has no name of its own. */
+  name: string;
+  members: WidgetInstance[];
+}
+
+/** The bands and stacks on a widget's page that it is not already in. */
+export function groupsFor(widgets: WidgetInstance[], id: string): GroupOption[] {
+  const widget = widgets.find((w) => w.id === id);
+  if (!widget) return [];
+
+  return groupWidgets(onPage(widgets, widget.page))
+    .filter((group) => group.kind !== "widget" && !group.members.some((w) => w.id === id))
+    .map((group) =>
+      group.kind === "stack"
+        ? { key: group.key, kind: "stack" as const, name: group.name, members: group.members }
+        : { key: group.key, kind: "band" as const, name: "", members: group.members },
+    )
+    // A band takes whoever asks; a stack has to have the room below it.
+    .filter((group) => group.kind === "band" || canJoinStack(widgets, id, group.name));
+}
+
+/**
+ * Tiles this one could pair up with to start a group.
+ *
+ * A band needs partners covering exactly the same rows, because that is what
+ * sharing a row means; a stack needs partners in exactly the same columns.
+ * Anything looser would move the other tile to make it fit, which is not what
+ * "share this row with that one" should do.
+ */
+export function partnersFor(widgets: WidgetInstance[], id: string, kind: "band" | "stack"): WidgetInstance[] {
+  const widget = widgets.find((w) => w.id === id);
+  if (!widget || widget.grid.share || widget.grid.stack) return [];
+
+  return onPage(widgets, widget.page).filter((other) => {
+    if (other.id === id || other.grid.share || other.grid.stack) return false;
+    const aligned =
+      kind === "band"
+        ? other.grid.row === widget.grid.row && other.grid.rowSpan === widget.grid.rowSpan
+        : other.grid.col === widget.grid.col && other.grid.colSpan === widget.grid.colSpan;
+    if (!aligned) return false;
+    return kind === "band"
+      ? canCreateBand(widgets, [id, other.id])
+      : canCreateStack(widgets, [id, other.id]);
+  });
+}
+
 // --- Adding, removing, and pages --------------------------------------------
 
 /** Add a widget of this type to a page, wherever there is room. */
