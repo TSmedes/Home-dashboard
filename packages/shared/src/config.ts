@@ -20,6 +20,13 @@ export const GridPlacementSchema = z
      * leaves a gap.
      */
     share: z.boolean().default(false),
+    /**
+     * Share a column with the other widgets naming the same stack: whichever
+     * are showing split their combined rectangle top to bottom, so one being
+     * switched off - or hiding itself, as bin day does between collections -
+     * gives its space to the rest instead of leaving a hole.
+     */
+    stack: z.string().min(1).optional(),
   })
   .refine((g) => g.share || g.col !== undefined, { message: "col is required unless share is true" })
   .refine((g) => g.col === undefined || g.col + g.colSpan - 1 <= GRID_COLUMNS, {

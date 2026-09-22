@@ -29,6 +29,7 @@ export function TaskRow({
   clock,
   showAssignee,
   showTags = false,
+  showNotes = false,
   onFinish,
   onUndo,
 }: {
@@ -39,12 +40,18 @@ export function TaskRow({
   clock: "12h" | "24h";
   showAssignee: boolean;
   showTags?: boolean;
+  /** Show the task's notes under its title. Off on the tile, which has no room. */
+  showNotes?: boolean;
   onFinish: () => void;
   onUndo: () => void;
 }) {
   const due = dueLabel(task, now, timezone, clock);
   const who = showAssignee ? assigneeLabel(task) : null;
   const tags = showTags ? task.tags : [];
+  // Notes are clamped to three lines so one long note cannot push every other
+  // task off the screen; a tap gives the whole thing.
+  const [notesOpen, setNotesOpen] = useState(false);
+  const notes = showNotes ? task.notes : undefined;
 
   return (
     <li className="task" data-finishing={pending} data-priority={task.priority === 5 ? "high" : undefined}>
@@ -60,6 +67,17 @@ export function TaskRow({
 
       <div className="task__body">
         <span className="task__title">{task.title}</span>
+        {notes && !pending && (
+          <button
+            type="button"
+            className="task__notes"
+            data-expanded={notesOpen}
+            aria-expanded={notesOpen}
+            onClick={() => setNotesOpen((open) => !open)}
+          >
+            {notes}
+          </button>
+        )}
         {pending ? (
           <span className="task__meta">
             <button type="button" className="task__undo" onClick={onUndo}>

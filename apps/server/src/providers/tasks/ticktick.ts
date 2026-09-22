@@ -21,6 +21,9 @@ interface RawTask {
   id: string;
   projectId: string;
   title?: string;
+  /** The task's notes. A checklist task keeps its description in `desc` instead. */
+  content?: string;
+  desc?: string;
   /** Abandoned -1, open 0, completed 2. */
   status?: number;
   priority?: number;
@@ -31,6 +34,17 @@ interface RawTask {
   sortOrder?: number;
   parentId?: string;
   assigneeUsername?: string;
+}
+
+/**
+ * TickTick writes notes as markdown and escapes its punctuation, so a plain
+ * sentence comes back as "Night vs\. day". The wall shows the text as written,
+ * not as markdown, so the escapes are dropped. Only the characters markdown
+ * actually escapes are touched, which leaves a Windows path like C:\Users
+ * alone.
+ */
+function unescapeMarkdown(text: string): string {
+  return text.replace(/\\([\\`*_{}[\]()#+\-.!>|~%,:;"'])/g, "$1");
 }
 
 export class TickTickError extends Error {
@@ -109,10 +123,12 @@ export class TickTickTasks {
         const allDay = Boolean(t.isAllDay && due);
         sortKey.set(t.id, due ? due.getTime() : Number.POSITIVE_INFINITY);
         const username = t.assigneeUsername || null;
+        const notes = unescapeMarkdown((t.content || t.desc || "").trim());
         return {
           id: t.id,
           projectId: t.projectId,
           title: t.title?.trim() || "(Untitled)",
+          ...(notes ? { notes } : {}),
           ...(due ? { dueDate: allDay ? safeDateKey(due, t.timeZone, this.#timezone) : due.toISOString() } : {}),
           dueAllDay: allDay,
           priority: (PRIORITIES.has(t.priority ?? 0) ? (t.priority ?? 0) : 0) as TaskItem["priority"],

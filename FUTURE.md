@@ -67,6 +67,26 @@ exercised against the live API, only against recorded response shapes, since
 no Premium account was available. Check the 403 message still mentions
 Premium; that is what tells "needs Premium" apart from other refusals.
 
+### Showing what the iPad itself is playing
+Asked for on 2026-09-22 and not built, because a web page cannot do it. The
+dashboard runs in Safari, and there is no web API that reports what other apps
+on the device are playing. `navigator.mediaSession` is the opposite of what it
+sounds like: it lets a page *describe* media **it** is playing to the system,
+so it can appear on the lock screen. It cannot read the system's now-playing
+state, and no permission unlocks that.
+
+What already covers most of it: the Spotify widget reports whichever device
+the account is playing on, the iPad included, so once the Premium problem
+above is solved "what the iPad is playing" is answered for Spotify.
+
+The only route that works for *anything* the iPad plays is to make the home
+server the thing playing it. Run an AirPlay receiver there - `shairport-sync`
+is the usual choice, and it can emit track metadata - AirPlay to it from the
+iPad, and add a provider that reads that metadata like any other source. That
+buys a widget that works across Apple Music, podcasts and YouTube, at the cost
+of a new container and of the audio coming out of the server's speakers rather
+than the iPad's. Worth it only if the sound was going to a stereo anyway.
+
 ## Known limitations
 
 - **The iPad's backlight cannot be controlled from a web page.** The night

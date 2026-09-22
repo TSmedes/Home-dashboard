@@ -27,4 +27,10 @@ export interface WidgetDefinition {
   detail?: ComponentType<WidgetProps<never>>;
   /** What the full-screen view is called, when it shows more than the tile's own title says. */
   detailTitle?: string;
+  /**
+   * Whether this widget has anything worth the wall right now. Returning false
+   * gives its space to whatever it is stacked with, as though it were switched
+   * off. Omit it for a widget that always earns its place.
+   */
+  relevant?: (args: { instance: WidgetInstance; config: DashboardConfig; now: Date }) => boolean;
 }

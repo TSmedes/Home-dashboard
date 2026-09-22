@@ -169,6 +169,76 @@ describe("TickTickTasks.read", () => {
     expect(tasks.find((t) => t.id === "a")?.tags).toEqual([]);
   });
 
+  // The notes a task carries in TickTick, so the wall can show more than a title.
+  it("reads a task's notes from content", async () => {
+    const { fetchImpl } = api({
+      "GET /project": json(projects),
+      "GET /project/todo1/data": json({
+        project: { id: "todo1", name: "🏡To-Do" },
+        tasks: [task({ id: "n", content: "  Blue bin, kerb by 7am  " })],
+      }),
+      "GET /project/todo1/members": json(members),
+    });
+    const tasks = (await new TickTickTasks(TOKEN, "🏡To-Do", TZ, fetchImpl).read()).tasks;
+    expect(tasks.find((t) => t.id === "n")?.notes).toBe("Blue bin, kerb by 7am");
+  });
+
+  // A checklist task puts its description in desc, leaving content for the items.
+  it("falls back to desc when a task has no content", async () => {
+    const { fetchImpl } = api({
+      "GET /project": json(projects),
+      "GET /project/todo1/data": json({
+        project: { id: "todo1", name: "🏡To-Do" },
+        tasks: [task({ id: "n", desc: "Everything for the trip" })],
+      }),
+      "GET /project/todo1/members": json(members),
+    });
+    const tasks = (await new TickTickTasks(TOKEN, "🏡To-Do", TZ, fetchImpl).read()).tasks;
+    expect(tasks.find((t) => t.id === "n")?.notes).toBe("Everything for the trip");
+  });
+
+  // TickTick escapes markdown punctuation on the way out; the wall wants prose.
+  it("unescapes the backslashes TickTick puts before punctuation", async () => {
+    const { fetchImpl } = api({
+      "GET /project": json(projects),
+      "GET /project/todo1/data": json({
+        project: { id: "todo1", name: "🏡To-Do" },
+        tasks: [task({ id: "n", content: "Night vs\\. day\\, then \\(later\\) 50\\% off" })],
+      }),
+      "GET /project/todo1/members": json(members),
+    });
+    const tasks = (await new TickTickTasks(TOKEN, "🏡To-Do", TZ, fetchImpl).read()).tasks;
+    expect(tasks.find((t) => t.id === "n")?.notes).toBe("Night vs. day, then (later) 50% off");
+  });
+
+  it("keeps a backslash that is not escaping anything", async () => {
+    const { fetchImpl } = api({
+      "GET /project": json(projects),
+      "GET /project/todo1/data": json({
+        project: { id: "todo1", name: "🏡To-Do" },
+        tasks: [task({ id: "n", content: "C:\\Users\\toby" })],
+      }),
+      "GET /project/todo1/members": json(members),
+    });
+    const tasks = (await new TickTickTasks(TOKEN, "🏡To-Do", TZ, fetchImpl).read()).tasks;
+    expect(tasks.find((t) => t.id === "n")?.notes).toBe("C:\\Users\\toby");
+  });
+
+  // Absent rather than empty, so the widget can test the field itself.
+  it("leaves notes off a task whose content is empty or blank", async () => {
+    const { fetchImpl } = api({
+      "GET /project": json(projects),
+      "GET /project/todo1/data": json({
+        project: { id: "todo1", name: "🏡To-Do" },
+        tasks: [task({ id: "blank", content: "   " }), task({ id: "none" })],
+      }),
+      "GET /project/todo1/members": json(members),
+    });
+    const tasks = (await new TickTickTasks(TOKEN, "🏡To-Do", TZ, fetchImpl).read()).tasks;
+    expect(tasks.find((t) => t.id === "blank")).not.toHaveProperty("notes");
+    expect(tasks.find((t) => t.id === "none")).not.toHaveProperty("notes");
+  });
+
   // An unshared list has no members to read; tasks should still show.
   it("still returns tasks when the members cannot be read", async () => {
     const { fetchImpl } = api({

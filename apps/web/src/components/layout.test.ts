@@ -20,8 +20,14 @@ const night = [
   widget("lights", { row: 5, rowSpan: 2, share: true }, false),
 ];
 
-const shape = (widgets: WidgetInstance[]) =>
-  layout(widgets).cells.map((cell) => (cell.kind === "band" ? cell.widgets.map((w) => w.id) : cell.widget.id));
+const shape = (widgets: WidgetInstance[], showing?: (w: WidgetInstance) => boolean) =>
+  layout(widgets, showing).cells.map((cell) => (cell.kind === "widget" ? cell.widget.id : cell.widgets.map((w) => w.id)));
+
+// The right-hand column of the day screen: lights above, bin day below.
+const column = [
+  widget("lights", { col: 10, row: 9, colSpan: 3, rowSpan: 7, stack: "right" }),
+  widget("bins", { col: 10, row: 16, colSpan: 3, rowSpan: 9, stack: "right" }),
+];
 
 describe("layout", () => {
   it("places a fixed widget by its column and row", () => {
@@ -68,5 +74,54 @@ describe("layout", () => {
 
   it("leaves out a switched-off fixed widget", () => {
     expect(shape([widget("a", { col: 1 }), widget("b", { col: 2 }, false)])).toEqual(["a"]);
+  });
+
+  // A widget can be hidden for a reason of its own - bin day, most of the week -
+  // rather than because it was switched off in settings.
+  it("takes a widget the predicate hides out of the layout", () => {
+    const widgets = [widget("a", { col: 1 }), widget("b", { col: 2 })];
+    expect(shape(widgets, (w) => w.id !== "b")).toEqual(["a"]);
+  });
+
+  it("counts rows from a hidden widget too, so nothing grows taller", () => {
+    const widgets = [widget("a", { col: 1, row: 1 }), widget("b", { col: 1, row: 4, rowSpan: 2 })];
+    expect(layout(widgets, (w) => w.id !== "b").rows).toBe(5);
+  });
+});
+
+describe("layout stacks", () => {
+  it("gathers a stack into one cell spanning every member's rows", () => {
+    const [cell] = layout(column).cells;
+    expect(cell).toMatchObject({ kind: "stack", column: "10 / span 3", row: "9 / span 16" });
+  });
+
+  it("splits the stack between its members, in the order written", () => {
+    expect(shape(column)).toEqual([["lights", "bins"]]);
+  });
+
+  // The point of a stack: the space a hidden member leaves goes to the rest.
+  it("keeps the whole rectangle when a member is hidden", () => {
+    const [cell] = layout(column, (w) => w.id !== "bins").cells;
+    expect(cell).toMatchObject({ kind: "stack", row: "9 / span 16" });
+    expect(shape(column, (w) => w.id !== "bins")).toEqual([["lights"]]);
+  });
+
+  it("drops the stack entirely when every member is hidden", () => {
+    expect(shape(column, () => false)).toEqual([]);
+  });
+
+  it("keeps stacks with different names apart", () => {
+    const widgets = [
+      widget("a", { col: 1, row: 1, stack: "left" }),
+      widget("b", { col: 10, row: 1, stack: "right" }),
+      widget("c", { col: 1, row: 2, stack: "left" }),
+    ];
+    expect(shape(widgets)).toEqual([["a", "c"], ["b"]]);
+  });
+
+  it("counts a hidden member's rows towards the stack's rectangle", () => {
+    // Without bins the union would stop at row 15; it must still reach 24.
+    const [cell] = layout(column, (w) => w.id === "lights").cells;
+    expect(cell).toMatchObject({ row: "9 / span 16" });
   });
 });
