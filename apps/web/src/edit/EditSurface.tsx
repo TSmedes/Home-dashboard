@@ -1,11 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { WidgetInstance } from "@home-dash/shared";
 import { useDashboard } from "../lib/dashboard.js";
 import { useEdit } from "./EditContext.js";
+import { AddWidgetPicker } from "./AddWidgetPicker.js";
 import { EditableGrid } from "./EditableGrid.js";
 import { EditSelection } from "./EditSelection.js";
 import { EditToolbar } from "./EditToolbar.js";
-import { onPage } from "./mutations.js";
+import { addWidget, onPage } from "./mutations.js";
 
 /**
  * The dashboard, being arranged.
@@ -19,6 +20,7 @@ export function EditSurface() {
   const { envelopes, availableSources } = useDashboard();
   const api = useEdit();
   const state = api.state;
+  const [adding, setAdding] = useState(false);
 
   // Escape leaves, as it does everywhere else on the dashboard. It cancels
   // rather than saves: the destructive reading of an ambiguous key press is
@@ -56,7 +58,7 @@ export function EditSurface() {
 
   return (
     <div className="edit" role="region" aria-label="Editing the dashboard layout">
-      <EditToolbar api={api} state={state} />
+      <EditToolbar api={api} state={state} onAdd={() => setAdding(true)} />
       <div className="edit__stage">
         {widgets.length === 0 ? (
           <p className="edit__empty">This page is empty. Add a widget to put something on it.</p>
@@ -73,7 +75,25 @@ export function EditSurface() {
           />
         )}
       </div>
-      {selected && <EditSelection widgets={widgets} selected={selected} onChange={change} />}
+      {selected && (
+        <EditSelection
+          widgets={widgets}
+          selected={selected}
+          onChange={change}
+          onRemoved={() => api.select(null)}
+        />
+      )}
+      {adding && (
+        <AddWidgetPicker
+          availableSources={availableSources}
+          onPage={widgets.map((w) => w.type)}
+          onClose={() => setAdding(false)}
+          onPick={(type) => {
+            change((list) => addWidget(list, type, state.page));
+            setAdding(false);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,13 +1,14 @@
 import type { WidgetInstance } from "@home-dash/shared";
 import { WIDGET_NAMES } from "../widgets/names.js";
 import { blocksOf, clampResize, rowsOf } from "./grid.js";
-import { placeWidget } from "./mutations.js";
+import { placeWidget, removeWidget } from "./mutations.js";
 
 interface Props {
   /** The page's widgets, which decide how far the selected one can grow. */
   widgets: WidgetInstance[];
   selected: WidgetInstance;
   onChange: (change: (widgets: WidgetInstance[]) => WidgetInstance[]) => void;
+  onRemoved: () => void;
 }
 
 /** A pair of buttons around a number, sized for a finger. */
@@ -53,7 +54,7 @@ function Stepper({
  * of the group's rectangle - so it says so instead of offering buttons that
  * would do nothing.
  */
-export function EditSelection({ widgets, selected, onChange }: Props) {
+export function EditSelection({ widgets, selected, onChange, onRemoved }: Props) {
   const name = selected.title || WIDGET_NAMES[selected.type] || selected.type;
   const grouped = selected.grid.share || selected.grid.stack !== undefined;
 
@@ -103,6 +104,28 @@ export function EditSelection({ widgets, selected, onChange }: Props) {
           />
         </>
       )}
+
+      <span className="edit-selection__spacer" />
+
+      {/* Removing is not the same as switching off, so both are offered: off
+          keeps the widget's place for later, remove gives the space back. */}
+      <button
+        type="button"
+        className="button"
+        onClick={() => onChange((list) => list.map((w) => (w.id === selected.id ? { ...w, enabled: !w.enabled } : w)))}
+      >
+        {selected.enabled ? "Switch off" : "Switch on"}
+      </button>
+      <button
+        type="button"
+        className="button button--quiet"
+        onClick={() => {
+          onChange((list) => removeWidget(list, selected.id));
+          onRemoved();
+        }}
+      >
+        Remove
+      </button>
     </div>
   );
 }

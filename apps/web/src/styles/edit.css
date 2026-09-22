@@ -307,3 +307,91 @@
 .edit-stepper button:active:not(:disabled) {
   background: var(--edge);
 }
+
+.edit-selection__spacer {
+  flex: 1 1 auto;
+}
+
+.button--quiet {
+  color: var(--warn);
+}
+
+/* Adding a widget: a sheet over the arrangement rather than a new screen, so
+   you can still see the page you are adding to behind it. */
+.edit-picker {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+}
+
+.edit-picker__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 35%);
+}
+
+.edit-picker__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 100%);
+  max-height: min(70vh, 640px);
+  border-radius: var(--radius-tile);
+  background: var(--surface);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 35%);
+  overflow: hidden;
+}
+
+.edit-picker__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: var(--edge-width) solid var(--edge);
+}
+
+.edit-picker__title {
+  margin: 0;
+  font-size: var(--size-md);
+}
+
+.edit-picker__list {
+  margin: 0;
+  padding: var(--space-2);
+  list-style: none;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.edit-picker__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 52px;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-inner);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.edit-picker__item:active {
+  background: var(--ground);
+}
+
+.edit-picker__name {
+  font-size: var(--size-base);
+}
+
+.edit-picker__note {
+  color: var(--ink-3);
+  font-size: var(--size-xs);
+}

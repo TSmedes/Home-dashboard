@@ -19,7 +19,7 @@ export function pageNumbers(state: EditState): number[] {
  * than a swipe, because swiping is off while editing - a drag across the
  * screen has to mean moving a tile and nothing else.
  */
-export function EditToolbar({ api, state }: { api: EditApi; state: EditState }) {
+export function EditToolbar({ api, state, onAdd }: { api: EditApi; state: EditState; onAdd: () => void }) {
   const profiles = Object.keys(state.draft.profiles);
   const pages = pageNumbers(state);
   const unsaved = api.changeCount > 0;
@@ -69,6 +69,9 @@ export function EditToolbar({ api, state }: { api: EditApi; state: EditState }) 
         )}
       </p>
 
+      <button type="button" className="button" onClick={onAdd}>
+        Add widget
+      </button>
       <button type="button" className="button" onClick={api.undo} disabled={!api.canUndo}>
         Undo
       </button>
