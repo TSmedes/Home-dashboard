@@ -3,8 +3,14 @@
 #
 # This file is the source of truth for layout and preferences. It is safe to
 # edit by hand; the settings screen (the gear, top left) edits only the values
-# you change and leaves the rest of this file exactly as written.
+# you change and leaves the rest of this file exactly as written - comments
+# and their alignment included.
 # Changes are picked up live - no restart, no rebuild.
+#
+# The layout below can also be arranged from the dashboard itself, under
+# Settings -> Widgets -> Edit layout: moving, resizing, adding and removing
+# widgets, pages and screens. It writes back here, so the two are the same
+# thing seen from either end.
 #
 # Secrets do NOT belong here. API keys, OAuth credentials and the calendar's
 # secret iCal addresses go in .env.

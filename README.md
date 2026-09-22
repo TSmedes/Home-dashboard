@@ -153,10 +153,16 @@ A profile whose `from` is later than its `to` wraps past midnight, which is how
 the night window is written. Overlapping windows resolve to whichever profile
 appears first in the file.
 
+You do not have to write any of this by hand: **Settings → Widgets → Edit
+layout** arranges it on the screen itself (see [Edit mode](#edit-mode) below).
+Either way it is the same file.
+
 The settings screen writes back to this same file as small, targeted edits:
 it changes only the value you touched and leaves every other character alone,
 comments and their alignment included. Turning a setting back to its default
-removes the line it added, so the file ends up exactly as you wrote it.
+removes the line it added, so the file ends up exactly as you wrote it. Moving
+a tile is three numbers changed and nothing else; adding one is three lines
+inserted, written the way the rest of the file is written.
 
 ## More widgets
 
@@ -246,6 +252,7 @@ The gear in the top-left corner opens settings. It covers:
 - **Lights**: rename a bulb, or hide it (a hidden bulb isn't polled either).
 - **Widgets**: switch each widget on or off, separately for the day and night
   screens and grouped by page. A switched-off widget leaves its space empty.
+  **Edit layout** opens edit mode, below.
 - **Spotify**: connect or disconnect the Spotify account, once
   `SPOTIFY_CLIENT_ID` is set.
 - **Status**: when each source last updated, and its error if it failed.
@@ -254,12 +261,48 @@ Settings closes itself after two minutes without a touch, so the wall never
 stays stuck on it. As with the rest of the dashboard there is no login:
 anyone on your network can change them.
 
+## Edit mode
+
+**Settings → Widgets → Edit layout** rearranges the wall from the wall. The
+pager is replaced by one page at a time with a toolbar, and swiping is off:
+a drag across the screen means moving a tile and nothing else.
+
+- **Move** a tile by its handle. Dropping it on free space puts it there;
+  dropping it on a tile of the same size trades the two; anything else springs
+  back. The preview shows which before you let go.
+- **Resize** with the width and height buttons on the selection bar. They stop
+  at the edge of the grid or the first tile in the way, and grey out when there
+  is no room, so they never offer something that will not happen.
+- **Add and remove** widgets, and switch one off without giving up its place.
+- **Shared rows and columns**: put a tile in with one it lines up with, reorder
+  within the group, or take it out again. This is the `share` and `stack`
+  arrangement described above.
+- **Pages**: add one, remove one, or send a tile to another.
+- **Settings** for the selected widget: its own display options, and the
+  settings it reads — the countdowns themselves, where the commute goes, when
+  the bins are collected.
+- **Screens**: add or remove a profile and say when each one starts. Their
+  windows always cover the whole day, so there is no way to leave a gap.
+
+Nothing is written until **Save**, which writes the lot as one edit. **Cancel**
+throws it away and **Undo** steps back one change at a time. While editing, the
+screen shows the layout being worked on rather than the one the schedule says
+is live, so you can arrange the night screen at two in the afternoon without
+the wall going dark.
+
+Everything on the wall is showing while you edit, including widgets switched
+off and bin day between collections — otherwise you could not move them, and
+the space they hold would look empty. The tiles themselves are inert: a light
+switch under your finger while rearranging would be a nasty surprise.
+
 ## Adding a widget
 
 Two files, no framework surgery:
 
 1. A component in `apps/web/src/widgets/`, plus one entry in
-   `widgets/registry.ts`.
+   `widgets/registry.ts`. Give that entry an `options:` list and edit mode
+   builds the settings controls for it; give it a `configEditor` if it reads
+   settings that live outside its own options.
 2. If it needs server data, one entry in
    `apps/server/src/providers/index.ts`. Return `null` from `create` when the
    integration is not configured and the widget shows a setup prompt instead of
