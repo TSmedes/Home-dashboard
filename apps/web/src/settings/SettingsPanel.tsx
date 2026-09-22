@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import type { ConfigChange, DashboardConfig, Place } from "@home-dash/shared";
+import type { ConfigChange, DashboardConfig } from "@home-dash/shared";
 import { pagesOf } from "../components/pages.js";
+import { send } from "../lib/api.js";
 import { useEdit } from "../edit/EditContext.js";
 import { useDashboard } from "../lib/dashboard.js";
 import { useNow } from "../lib/useNow.js";
@@ -8,6 +9,7 @@ import { WIDGET_NAMES } from "../widgets/names.js";
 import { CommitInput, Segmented, Switch } from "./controls.js";
 import { ago, overrideSummary, profileLabel, scheduleChanges } from "./model.js";
 import { Row, Section } from "./parts.js";
+import { PlaceSearch } from "./PlaceSearch.js";
 
 /** Settings closes itself after this long untouched, so the wall never stays on it. */
 const IDLE_CLOSE_MS = 120_000;
@@ -27,16 +29,6 @@ const SOURCE_NAMES: Record<string, string> = {
 
 type Notice = { text: string; tone: "ok" | "error" } | null;
 type Save = (changes: ConfigChange[], done?: string) => Promise<void>;
-
-async function send(method: string, url: string, body?: unknown): Promise<unknown> {
-  const response = await fetch(url, {
-    method,
-    ...(body === undefined ? {} : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
-  });
-  const payload = (await response.json().catch(() => ({}))) as { error?: string };
-  if (!response.ok) throw new Error(payload.error ?? `the server returned ${response.status}`);
-  return payload;
-}
 
 export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const { config, activeProfile, override, connection } = useDashboard();
@@ -219,78 +211,27 @@ function ScheduleSection({
 }
 
 function LocationSection({ config, save }: { config: DashboardConfig; save: Save }) {
-  const [query, setQuery] = useState("");
-  const [places, setPlaces] = useState<Place[] | null>(null);
-  const [searched, setSearched] = useState("");
-  const [state, setState] = useState<"idle" | "searching" | "failed">("idle");
-
-  const search = async (event: FormEvent) => {
-    event.preventDefault();
-    const q = query.trim();
-    if (q.length < 2) return;
-    setState("searching");
-    try {
-      const { places: found } = (await send("GET", `/api/geocode?q=${encodeURIComponent(q)}`)) as { places: Place[] };
-      setPlaces(found);
-      setSearched(q);
-      setState("idle");
-    } catch {
-      setState("failed");
-    }
-  };
-
-  const pick = async (place: Place) => {
-    await save(
-      [
-        { path: ["location", "name"], value: place.label },
-        { path: ["location", "lat"], value: place.lat },
-        { path: ["location", "lon"], value: place.lon },
-        { path: ["location", "timezone"], value: place.timezone },
-      ],
-      `Location set to ${place.label}`,
-    ).catch(() => {});
-    setPlaces(null);
-    setQuery("");
-  };
-
   return (
     <Section title="Location">
       <div className="settings__lead">
         <p>
           Weather and times are for <strong>{config.location.name}</strong>.
         </p>
-        <form className="settings__search" onSubmit={search}>
-          <input
-            className="field"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search for a town"
-            aria-label="Search for a town"
-            enterKeyHint="search"
-          />
-          <button type="submit" className="button" disabled={state === "searching" || query.trim().length < 2}>
-            {state === "searching" ? "Searching" : "Search"}
-          </button>
-        </form>
-        {state === "failed" && <p className="settings__error">Couldn't search just now. Try again.</p>}
       </div>
-      {places?.length === 0 && (
-        <p className="settings__empty">No places called “{searched}”. Try a nearby larger town.</p>
-      )}
-      {places?.map((place) => (
-        <button
-          key={`${place.lat},${place.lon}`}
-          type="button"
-          className="settings__place"
-          onClick={() => void pick(place)}
-        >
-          <span className="settings__label">
-            {place.label}
-            <span className="settings__detail">{place.detail}</span>
-          </span>
-          <span className="settings__choose">Use</span>
-        </button>
-      ))}
+      <PlaceSearch
+        label="Search for a town"
+        onPick={(place) =>
+          void save(
+            [
+              { path: ["location", "name"], value: place.label },
+              { path: ["location", "lat"], value: place.lat },
+              { path: ["location", "lon"], value: place.lon },
+              { path: ["location", "timezone"], value: place.timezone },
+            ],
+            `Location set to ${place.label}`,
+          ).catch(() => {})
+        }
+      />
     </Section>
   );
 }

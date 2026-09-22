@@ -26,6 +26,9 @@ import { TasksWidget } from "./TasksWidget.js";
 import { TempsWidget } from "./TempsWidget.js";
 import { WeatherWidget } from "./WeatherWidget.js";
 import type { TasksSnapshot } from "@home-dash/shared";
+import { BinsEditor } from "../edit/editors/BinsEditor.js";
+import { CommuteEditor } from "../edit/editors/CommuteEditor.js";
+import { CountdownsEditor } from "../edit/editors/CountdownsEditor.js";
 import type { OptionSpec } from "../edit/options.js";
 import type { OptionContext, WidgetDefinition } from "./types.js";
 
@@ -169,6 +172,7 @@ export const widgetRegistry: Record<string, WidgetDefinition> = {
     // A bin reminder is worth the wall the day before and the day itself, and
     // is clutter the rest of the week.
     relevant: ({ config, now }) => binsDueSoon(config.bins, now, config.location.timezone),
+    configEditor: BinsEditor,
   },
   countdowns: {
     type: "countdowns",
@@ -176,6 +180,7 @@ export const widgetRegistry: Record<string, WidgetDefinition> = {
     detail: CountdownsDetail as WidgetDefinition["detail"],
     dataKey: "countdowns",
     chrome: true,
+    configEditor: CountdownsEditor,
     options: [
       {
         key: "limit",
@@ -201,7 +206,8 @@ export const widgetRegistry: Record<string, WidgetDefinition> = {
     detail: CommuteDetail as WidgetDefinition["detail"],
     dataKey: "commute",
     chrome: true,
-    setupHint: "Add TOMTOM_API_KEY to .env and your destinations under commute: in config.yaml.",
+    setupHint: "Add TOMTOM_API_KEY to .env, then add where you drive to in this widget's settings.",
+    configEditor: CommuteEditor,
   },
   spotify: {
     type: "spotify",

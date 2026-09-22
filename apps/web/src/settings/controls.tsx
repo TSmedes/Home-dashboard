@@ -78,7 +78,7 @@ export function CommitInput({
   value: string;
   label: string;
   onCommit: (next: string) => void;
-  type?: "text" | "time";
+  type?: "text" | "time" | "date";
 }) {
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value]);
@@ -89,9 +89,11 @@ export function CommitInput({
     if (next !== value) onCommit(next);
   };
 
+  const className = type === "text" ? "field" : `field field--${type}`;
+
   return (
     <input
-      className={type === "time" ? "field field--time" : "field"}
+      className={className}
       type={type}
       value={draft}
       aria-label={label}

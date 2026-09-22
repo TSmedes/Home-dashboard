@@ -423,3 +423,20 @@
 .edit-picker__scroll .settings__section {
   margin: 0 0 var(--space-4);
 }
+
+/* A row of controls for one item in a list: the name, whatever else it needs,
+   and the way to get rid of it. */
+.editor-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.editor-row--wrap {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.field--date {
+  min-width: 10ch;
+}
