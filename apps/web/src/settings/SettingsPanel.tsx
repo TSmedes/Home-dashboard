@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import type { ConfigChange, DashboardConfig, Place } from "@home-dash/shared";
 import { pagesOf } from "../components/pages.js";
+import { useEdit } from "../edit/EditContext.js";
 import { useDashboard } from "../lib/dashboard.js";
 import { useNow } from "../lib/useNow.js";
 import { WIDGET_NAMES } from "../widgets/names.js";
@@ -98,7 +99,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           <ScheduleSection config={config} save={save} setNotice={setNotice} />
           <LocationSection config={config} save={save} />
           {config.lights.length > 0 && <LightsSection config={config} save={save} />}
-          <WidgetsSection config={config} active={activeProfile} save={save} />
+          <WidgetsSection config={config} active={activeProfile} save={save} onClose={onClose} />
           <SpotifySection setNotice={setNotice} />
           <StatusSection connection={connection} />
         </div>
@@ -326,9 +327,20 @@ function LightsSection({ config, save }: { config: DashboardConfig; save: Save }
   );
 }
 
-function WidgetsSection({ config, active, save }: { config: DashboardConfig; active: string; save: Save }) {
+function WidgetsSection({
+  config,
+  active,
+  save,
+  onClose,
+}: {
+  config: DashboardConfig;
+  active: string;
+  save: Save;
+  onClose: () => void;
+}) {
   const names = Object.keys(config.profiles);
   const [profile, setProfile] = useState(names.includes(active) ? active : names[0]!);
+  const edit = useEdit();
   const widgets = config.profiles[profile]?.widgets ?? [];
   const pages = pagesOf(widgets);
 
@@ -344,6 +356,18 @@ function WidgetsSection({ config, active, save }: { config: DashboardConfig; act
           />
         </div>
       )}
+      <Row label="Layout" detail="Move, resize, add and remove widgets on the screen itself.">
+        <button
+          type="button"
+          className="button"
+          onClick={() => {
+            edit.begin(profile);
+            onClose();
+          }}
+        >
+          Edit layout
+        </button>
+      </Row>
       {pages.map((page, index) => (
         <div key={page.number} className="settings__group">
           {pages.length > 1 && <p className="settings__subhead">Page {index + 1}</p>}

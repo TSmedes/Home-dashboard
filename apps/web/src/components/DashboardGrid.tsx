@@ -3,10 +3,9 @@ import { GRID_COLUMNS, type DashboardConfig, type WidgetInstance } from "@home-d
 import type { WidgetEnvelope } from "@home-dash/shared";
 import { useNow } from "../lib/useNow.js";
 import { widgetFor } from "../widgets/registry.js";
-import { WidgetErrorBoundary } from "./ErrorBoundary.js";
 import { OWN_CONTROLS, useExpand } from "./Expanded.js";
 import { layout } from "./layout.js";
-import { WidgetFrame } from "./WidgetFrame.js";
+import { expandable, WidgetTile } from "./WidgetTile.js";
 
 interface Props {
   config: DashboardConfig;
@@ -25,12 +24,6 @@ export function DashboardGrid({ config, widgets, envelopes, availableSources }: 
   const { rows, cells } = layout(widgets, showing);
   const { expand } = useExpand();
 
-  /** Whether this widget can grow to full screen: it has a detail view and data to show in it. */
-  const expandable = (instance: WidgetInstance) => {
-    const definition = widgetFor(instance.type);
-    return definition?.detail !== undefined && (!definition.dataKey || availableSources.includes(definition.dataKey));
-  };
-
   const expandFrom = (instance: WidgetInstance, from: HTMLElement) => {
     const cell = from.closest<HTMLElement>(".grid__cell");
     if (cell) expand(instance.id, cell);
@@ -39,53 +32,20 @@ export function DashboardGrid({ config, widgets, envelopes, availableSources }: 
   // A tap anywhere on the tile opens it, except on a control the tile already
   // answers to. Safari sends no click after a swipe, so paging is unaffected.
   const onCellClick = (instance: WidgetInstance) => (event: MouseEvent<HTMLElement>) => {
-    if (!expandable(instance)) return;
+    if (!expandable(instance, availableSources)) return;
     if ((event.target as Element).closest(OWN_CONTROLS)) return;
     expandFrom(instance, event.currentTarget);
   };
 
-  const render = (instance: WidgetInstance) => {
-    const definition = widgetFor(instance.type);
-    const envelope = definition?.dataKey ? (envelopes[definition.dataKey] ?? null) : null;
-    const needsSetup = definition?.dataKey !== undefined && !availableSources.includes(definition.dataKey);
-
-    return (
-      <WidgetErrorBoundary name={instance.id}>
-        {!definition ? (
-          <section className="widget surface">
-            <div className="widget-message">
-              <p>No widget called &ldquo;{instance.type}&rdquo;.</p>
-              <p className="widget-message__detail">Check the type in config.yaml.</p>
-            </div>
-          </section>
-        ) : needsSetup ? (
-          <section className={`widget surface widget--${instance.type}`}>
-            {instance.title && (
-              <header className="widget__head">
-                <h2 className="widget__title">{instance.title}</h2>
-              </header>
-            )}
-            <div className="widget-message">
-              <p>Not connected yet.</p>
-              <p className="widget-message__detail">{definition?.setupHint ?? "Run npm run setup to link this account."}</p>
-            </div>
-          </section>
-        ) : (
-          <WidgetFrame
-            type={instance.type}
-            title={instance.title}
-            chrome={definition.chrome ?? true}
-            envelope={envelope}
-            timezone={config.location.timezone}
-            clock={config.units.clock}
-            onExpand={expandable(instance) ? (from) => expandFrom(instance, from) : undefined}
-          >
-            <definition.component instance={instance} config={config} envelope={envelope as never} />
-          </WidgetFrame>
-        )}
-      </WidgetErrorBoundary>
-    );
-  };
+  const render = (instance: WidgetInstance) => (
+    <WidgetTile
+      instance={instance}
+      config={config}
+      envelopes={envelopes}
+      availableSources={availableSources}
+      onExpand={expandable(instance, availableSources) ? (from) => expandFrom(instance, from) : undefined}
+    />
+  );
 
   return (
     <div

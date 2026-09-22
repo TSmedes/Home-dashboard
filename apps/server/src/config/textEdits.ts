@@ -106,21 +106,57 @@ function seqEdit(src: string, doc: Document, change: ResolvedChange, order: numb
   const indent = first.range[0] - lineStart(src, first.range[0]) - 2;
   if (indent < 0) return null;
 
+  /**
+   * Where an entry really begins: at the comment written above it rather than
+   * at its own first line, because that note explains this entry.
+   *
+   * `throughBlanks` also swallows the blank line separating it from the entry
+   * before. Removing an entry wants that - otherwise the file collects blank
+   * lines - but inserting one does not, because the new entry wants to land
+   * below the blank and keep its own separation.
+   */
+  const blockStart = (at: number, floor: number, throughBlanks: boolean): number => {
+    let start = lineStart(src, at);
+    while (start > floor) {
+      const previous = lineStart(src, start - 1);
+      const line = src.slice(previous, start).trim();
+      if (line === "" ? !throughBlanks : !line.startsWith("#")) break;
+      start = previous;
+    }
+    return start;
+  };
+
+  // Does this list put a blank line between its entries? Matching it is the
+  // difference between an added widget looking written and looking pasted.
+  // An entry's range already ends past the newline of its last line, so
+  // anything between that and the next entry's block is blank lines.
+  const secondStart = items[1]?.range?.[0];
+  const spaced =
+    secondStart !== undefined &&
+    src.slice(first.range[1], blockStart(secondStart, first.range[1], false)).includes("\n");
+  const gap = spaced ? newline : "";
+
   if (op === "insert") {
     if (value === null) return null;
     const text = renderItem(value, indent, newline);
     if (text === null) return null;
+
     if (index < items.length) {
-      const at = lineStart(src, items[index]!.range![0]);
-      return { start: at, end: at, text, order };
+      // Before the entry it displaces, and before that entry's own comment.
+      const floor = index === 0 ? 0 : items[index - 1]!.range![1];
+      const at = blockStart(items[index]!.range![0], floor, false);
+      return { start: at, end: at, text: `${text}${gap}`, order };
     }
-    // Appending: onto the line after the last entry's last line.
+
+    // Appending. A block entry's range already ends past the newline of its
+    // last line, so this is the start of whatever follows the list - before
+    // any blank line, which is why the new entry brings its own separator.
     const last = items.at(-1);
     if (!last?.range) return null;
-    const end = lineEnd(src, last.range[1]);
-    return end === src.length
-      ? { start: end, end, text: `${newline}${text.trimEnd()}`, order }
-      : { start: end + 1, end: end + 1, text, order };
+    const at = Math.min(last.range[1], src.length);
+    return at >= src.length
+      ? { start: src.length, end: src.length, text: `${gap}${text}`, order }
+      : { start: at, end: at, text: `${gap}${text}`, order };
   }
 
   const item = items[index];
@@ -128,17 +164,7 @@ function seqEdit(src: string, doc: Document, change: ResolvedChange, order: numb
 
   // A removed entry takes the comment written above it: it explains that
   // entry, and leaving it behind would attach it to whatever follows.
-  // Walking back stops at the first line that is neither blank nor a comment
-  // - the key introducing the list, or the previous entry's last line. The
-  // floor is only insurance against an entry that ends in a comment of its own.
-  const floor = index === 0 ? 0 : lineEnd(src, items[index - 1]!.range![1]) + 1;
-  let start = lineStart(src, item.range[0]);
-  while (start > floor) {
-    const previous = lineStart(src, start - 1);
-    const line = src.slice(previous, start).trim();
-    if (line !== "" && !line.startsWith("#")) break;
-    start = previous;
-  }
+  const start = blockStart(item.range[0], index === 0 ? 0 : lineEnd(src, items[index - 1]!.range![1]) + 1, true);
 
   const end = Math.min(lineEnd(src, item.range[1]) + 1, src.length);
   if (value === null) return { start, end, text: "", order };

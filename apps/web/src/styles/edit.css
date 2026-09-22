@@ -1,0 +1,180 @@
+/*
+ * Edit mode.
+ *
+ * The point is that the wall still looks like the wall while you rearrange it,
+ * so the tiles keep their own colours and shapes and the editing chrome sits
+ * over them rather than replacing them. What changes is that everything is
+ * showing, nothing responds to a poke, and each tile says what it is.
+ */
+
+.edit {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  background: var(--ground);
+}
+
+/* The toolbar is the only part that scrolls sideways, on a narrow screen. */
+.edit-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  padding-top: max(var(--space-3), env(safe-area-inset-top));
+  background: var(--surface);
+  border-bottom: var(--edge-width) solid var(--edge);
+}
+
+.edit-bar__group {
+  display: flex;
+  gap: var(--space-1);
+  padding: 3px;
+  background: var(--ground);
+  border-radius: var(--radius-pill);
+}
+
+.edit-bar__status {
+  flex: 1 1 auto;
+  min-width: 10ch;
+  margin: 0;
+  font-size: var(--size-sm);
+  color: var(--ink-3);
+  text-align: right;
+}
+
+.edit-bar__problem {
+  color: var(--warn);
+}
+
+/* 44px of target, whatever the label says. */
+.edit-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  min-height: 38px;
+  min-width: 44px;
+  justify-content: center;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--size-base);
+  cursor: pointer;
+}
+
+.edit-chip[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 12%);
+}
+
+.edit-chip__note {
+  font-size: var(--size-xs);
+  color: var(--ink-3);
+}
+
+.edit__stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--space-4);
+  /* A drag has to mean moving a tile, so the stage never pans or zooms. */
+  touch-action: none;
+  overflow: hidden;
+}
+
+.edit__empty {
+  display: grid;
+  place-content: center;
+  height: 100%;
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--size-md);
+  text-align: center;
+}
+
+.edit-grid {
+  height: 100%;
+}
+
+/* A group's own rectangle is worth seeing while you rearrange it: it explains
+   why its tiles move together and why a drop onto them behaves as it does. */
+.edit-group {
+  outline: 2px dashed color-mix(in srgb, var(--ink-3) 35%, transparent);
+  outline-offset: 5px;
+  border-radius: var(--radius-inner);
+}
+
+.edit-tile {
+  position: relative;
+}
+
+/* The widget itself is a picture while editing: no switch, no checkbox, no
+   scroll. Everything you can touch belongs to the editor. */
+.edit-tile__body {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.edit-tile__body > * {
+  height: 100%;
+}
+
+.edit-tile[data-off] .edit-tile__body {
+  opacity: 0.4;
+}
+
+/* The whole tile is the target. It sits over the widget and carries its name,
+   because a tile shrunk to two columns may not say what it is any more. */
+.edit-tile__hit {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 2px solid transparent;
+  border-radius: var(--radius-tile);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.edit-tile__hit:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.edit-tile[data-selected] .edit-tile__hit {
+  border-color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.edit-tile__name,
+.edit-tile__off {
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 18%);
+  font-size: var(--size-xs);
+  line-height: 1.7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.edit-tile__off {
+  color: var(--ink-3);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .edit-tile__hit {
+    transition: border-color 140ms ease, background-color 140ms ease;
+  }
+}

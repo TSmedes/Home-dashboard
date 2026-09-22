@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pager } from "./components/Pager.js";
+import { useEdit } from "./edit/EditContext.js";
+import { EditSurface } from "./edit/EditSurface.js";
 import { useDashboard } from "./lib/dashboard.js";
 import { SettingsPanel } from "./settings/SettingsPanel.js";
 
@@ -15,14 +17,20 @@ function Gear() {
 
 export function App() {
   const { config, activeProfile, envelopes, availableSources, connection, fatal } = useDashboard();
+  const edit = useEdit();
   const profile = config && activeProfile ? config.profiles[activeProfile] : undefined;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
 
-  // The theme belongs to the profile, so day and night can differ completely.
+  // While editing, the screen follows the layout being worked on rather than
+  // the one the schedule says is live - otherwise arranging the night screen
+  // in the afternoon would show it in daylight colours, and a scheduled
+  // day-to-night switch would change the theme under someone mid-drag.
+  const editing = edit.state ? edit.state.draft.profiles[edit.state.profileName] : undefined;
+  const theme = (editing ?? profile)?.theme ?? "light";
   useEffect(() => {
-    document.documentElement.dataset.theme = profile?.theme ?? "light";
-  }, [profile?.theme]);
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   if (fatal) {
     return (
@@ -49,6 +57,8 @@ export function App() {
       </main>
     );
   }
+
+  if (edit.editing) return <EditSurface />;
 
   return (
     <main className="dashboard">

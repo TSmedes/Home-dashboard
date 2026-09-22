@@ -106,6 +106,28 @@ describe("editText on a block list", () => {
     expect(comments(next)).toBe(comments(WIDGETS));
   });
 
+  it("separates an appended entry the way the list separates its own", () => {
+    const next = edit(WIDGETS, [{ path: at("profiles", "day", "widgets", 3), value: widget, op: "insert" }])!;
+    expect(next).toContain("rowSpan: 4 }\n\n" + "      - id: river");
+  });
+
+  it("separates an inserted entry from the one it displaces", () => {
+    const next = edit(WIDGETS, [{ path: at("profiles", "day", "widgets", 1), value: widget, op: "insert" }])!;
+    // And it goes above the displaced entry's comment, not between it and its entry.
+    expect(next).toContain("      - id: river");
+    const lines = next.split("\n");
+    const river = lines.findIndex((l) => l.includes("- id: river"));
+    const note = lines.findIndex((l) => l.includes("days is how many"));
+    expect(river).toBeLessThan(note);
+    expect(lines[river - 1]).toBe("");
+  });
+
+  it("follows a list that does not space its entries", () => {
+    const tight = "a:\n  list:\n    - id: one\n      n: 1\n    - id: two\n      n: 2" + "\n";
+    const next = edit(tight, [{ path: at("a", "list", 2), value: { id: "three", n: 3 }, op: "insert" }])!;
+    expect(next).toBe(tight + "    - id: three\n      n: 3" + "\n");
+  });
+
   it("refuses a list written on one line, leaving it to the reprint", () => {
     const flow = "river:\n  gauges: [ SNQW1, TANW1 ]\n";
     expect(edit(flow, [{ path: at("river", "gauges", 2), value: "GARW1", op: "insert" }])).toBe(null);
