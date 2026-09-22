@@ -98,6 +98,63 @@ export function buildAgenda(
     .filter((day) => day.items.length > 0);
 }
 
+export interface LaterItem {
+  key: string;
+  event: CalendarEvent;
+  /** The day it falls on, short enough for a narrow tile: "Oct 2". */
+  date: string;
+  when: When;
+}
+
+/**
+ * What lies beyond the days the agenda lists one by one.
+ *
+ * The tile shows `days` days in full and then, if there is room left on the
+ * card, keeps going as a flat dated list rather than a heading per day - a
+ * fortnight of mostly-empty days would be all headings and no news.
+ *
+ * Everything up to `daysAhead` is returned; how much of it fits is the tile's
+ * business, not this function's.
+ */
+export function buildLater(
+  events: CalendarEvent[],
+  now: Date,
+  timezone: string,
+  days: number,
+  daysAhead: number,
+  clock: "12h" | "24h",
+): LaterItem[] {
+  const today = dateKey(now, timezone);
+  const from = addDays(today, days);
+  const until = addDays(today, daysAhead);
+  const nowMs = now.getTime();
+  const items: LaterItem[] = [];
+
+  for (const event of events) {
+    const eventKey = `${event.calendarId}/${event.id}`;
+    // An event is listed once, on the day it starts, however long it runs.
+    const startKey = event.allDay ? event.start : dateKey(new Date(event.start), timezone);
+    if (startKey < from || startKey >= until) continue;
+    if (!event.allDay && Date.parse(event.end) <= nowMs) continue;
+
+    items.push({
+      key: `${eventKey}/later`,
+      event,
+      date: new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(
+        noonOf(startKey),
+      ),
+      when: event.allDay ? { kind: "allDay" } : { kind: "at", ...clockTime(new Date(event.start), timezone, clock) },
+    });
+  }
+
+  return items.sort(
+    (a, b) =>
+      Date.parse(a.event.start) - Date.parse(b.event.start) ||
+      Number(b.event.allDay) - Number(a.event.allDay) ||
+      a.event.title.localeCompare(b.event.title),
+  );
+}
+
 /**
  * The whole of an event's time, for the expanded calendar: "9:00am – 10:30am",
  * "9:00pm – Tue 7:00am" when it runs past midnight, "All day · 3 days".

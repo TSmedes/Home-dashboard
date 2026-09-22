@@ -661,6 +661,30 @@
   list-style: none;
 }
 
+/* Takes whatever height the listed days left behind, and no more: its box is
+   set by the card, not by how many events are in it, which is what lets the
+   list be measured against a fixed edge without the measurement moving it. */
+.agenda__later {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.agenda__later-items {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Set apart from the day names above it: this heading is a category, not a day. */
+.agenda__label--later {
+  font-size: var(--size-xs);
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 .agenda__item {
   display: grid;
   grid-template-columns: 4.3em minmax(0, 1fr);
