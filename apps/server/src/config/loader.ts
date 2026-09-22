@@ -1,6 +1,6 @@
 import { readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { isScalar, parseDocument, type Document } from "yaml";
+import { isScalar, isSeq, parseDocument, type Document } from "yaml";
 import { editText, type ResolvedChange } from "./textEdits.js";
 import type { ZodIssue } from "zod";
 import {
@@ -152,6 +152,7 @@ export class ConfigStore {
     const resolved: ResolvedChange[] = changes.map((change) => ({
       path: resolvePath(plain, change.path),
       value: change.value,
+      ...(change.op ? { op: change.op } : {}),
     }));
 
     // Small text edits first; re-printing the document only if they can't do it.
@@ -177,10 +178,19 @@ export class ConfigStore {
    */
   static #reprint(source: string, changes: ResolvedChange[]): string {
     const doc = parseDocument(source);
-    for (const { path, value } of changes) {
+    for (const { path, value, op } of changes) {
+      if (op === "insert") {
+        // Push the rest of the list along rather than overwriting an entry.
+        const seq = doc.getIn(path.slice(0, -1), true);
+        if (isSeq(seq)) seq.items.splice(path.at(-1) as number, 0, doc.createNode(value));
+        continue;
+      }
       // null means "back to the default": drop the key rather than write it.
       if (value === null) {
-        doc.deleteIn(path);
+        // A list entry is removed from the list; deleteIn would leave a hole.
+        const parent = doc.getIn(path.slice(0, -1), true);
+        if (isSeq(parent) && typeof path.at(-1) === "number") parent.items.splice(path.at(-1) as number, 1);
+        else doc.deleteIn(path);
         continue;
       }
       const node = doc.getIn(path, true);

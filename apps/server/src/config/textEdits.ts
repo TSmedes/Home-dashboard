@@ -1,10 +1,12 @@
-import { isMap, isScalar, parseDocument, Scalar, type Document, type Pair } from "yaml";
+import { Document as YamlDocument, isMap, isScalar, isSeq, parseDocument, Scalar, type Document, type Node, type Pair } from "yaml";
 
 /** A change whose `{ id }` path segments have already been turned into indexes. */
 export interface ResolvedChange {
   path: (string | number)[];
   /** null removes the key. */
   value: unknown;
+  /** Insert before this list position rather than replacing what is there. */
+  op?: "insert";
 }
 
 interface Edit {
@@ -41,10 +43,114 @@ function render(value: string | number | boolean, like?: Scalar): string {
   return JSON.stringify(value);
 }
 
+
+/**
+ * Write a nested map of plain values on one line.
+ *
+ * It is how this file is written by hand - `grid: { col: 1, row: 1 }`,
+ * `schedule: { from: "06:30", to: "21:30" }` - and a widget added from the
+ * dashboard that spread its grid over five lines would stand out as the one
+ * the machine wrote.
+ */
+function inlineScalarMaps(node: unknown): void {
+  if (isMap(node)) {
+    for (const pair of node.items as Pair[]) {
+      const value = pair.value;
+      if (isMap(value) && value.items.length > 0 && (value.items as Pair[]).every((p) => isScalar(p.value))) {
+        value.flow = true;
+      } else {
+        inlineScalarMaps(value);
+      }
+    }
+    return;
+  }
+  if (isSeq(node)) for (const item of node.items) inlineScalarMaps(item);
+}
+
+/** One block-sequence entry, `- ` marker and all, indented to sit in its list. */
+function renderItem(value: unknown, indent: number, newline: string): string | null {
+  const doc = new YamlDocument(value);
+  inlineScalarMaps(doc.contents as Node);
+  const body = doc.toString({ lineWidth: 0 }).trimEnd();
+  if (body === "") return null;
+  const pad = " ".repeat(indent);
+  return (
+    body
+      .split("\n")
+      .map((line, i) => (i === 0 ? `${pad}- ${line}` : `${pad}  ${line}`))
+      .join(newline) + newline
+  );
+}
+
+/**
+ * The text edit for adding, replacing or removing one entry of a block list.
+ *
+ * Without this a list can only be written back whole, which replaces the node
+ * and takes every comment inside it - and `widgets:` is where the notes
+ * explaining the dashboard live. Working in lines instead keeps the rest of
+ * the list exactly as it was.
+ */
+function seqEdit(src: string, doc: Document, change: ResolvedChange, order: number, newline: string): Edit | null {
+  const { path, value, op } = change;
+  const index = path.at(-1);
+  if (typeof index !== "number") return null;
+
+  const parent = path.length === 1 ? doc.contents : doc.getIn(path.slice(0, -1), true);
+  // Flow lists (`[ SNQW1, TANW1 ]`) are one line; leave those to the reprint.
+  if (!isSeq(parent) || parent.flow) return null;
+  const items = parent.items as Ranged[];
+  const first = items[0];
+  if (!first?.range) return null;
+
+  // The `- ` marker sits two characters before the entry's own first token.
+  const indent = first.range[0] - lineStart(src, first.range[0]) - 2;
+  if (indent < 0) return null;
+
+  if (op === "insert") {
+    if (value === null) return null;
+    const text = renderItem(value, indent, newline);
+    if (text === null) return null;
+    if (index < items.length) {
+      const at = lineStart(src, items[index]!.range![0]);
+      return { start: at, end: at, text, order };
+    }
+    // Appending: onto the line after the last entry's last line.
+    const last = items.at(-1);
+    if (!last?.range) return null;
+    const end = lineEnd(src, last.range[1]);
+    return end === src.length
+      ? { start: end, end, text: `${newline}${text.trimEnd()}`, order }
+      : { start: end + 1, end: end + 1, text, order };
+  }
+
+  const item = items[index];
+  if (!item?.range) return null;
+
+  // A removed entry takes the comment written above it: it explains that
+  // entry, and leaving it behind would attach it to whatever follows.
+  // Walking back stops at the first line that is neither blank nor a comment
+  // - the key introducing the list, or the previous entry's last line. The
+  // floor is only insurance against an entry that ends in a comment of its own.
+  const floor = index === 0 ? 0 : lineEnd(src, items[index - 1]!.range![1]) + 1;
+  let start = lineStart(src, item.range[0]);
+  while (start > floor) {
+    const previous = lineStart(src, start - 1);
+    const line = src.slice(previous, start).trim();
+    if (line !== "" && !line.startsWith("#")) break;
+    start = previous;
+  }
+
+  const end = Math.min(lineEnd(src, item.range[1]) + 1, src.length);
+  if (value === null) return { start, end, text: "", order };
+  const text = renderItem(value, indent, newline);
+  return text === null ? null : { start, end, text, order };
+}
+
 /** The text edit for one change, or null if it cannot be done as a small edit. */
 function editFor(src: string, doc: Document, change: ResolvedChange, order: number, newline: string): Edit | null {
   const { path, value } = change;
   const key = path.at(-1);
+  if (typeof key === "number") return seqEdit(src, doc, change, order, newline);
   if (typeof key !== "string" || (value !== null && !isSimple(value))) return null;
 
   const parent = path.length === 1 ? doc.contents : doc.getIn(path.slice(0, -1), true);
@@ -95,6 +201,14 @@ function applyToPlain(target: unknown, change: ResolvedChange): void {
   let node = target as Record<string | number, unknown>;
   for (const segment of change.path.slice(0, -1)) node = node[segment] as Record<string | number, unknown>;
   const key = change.path.at(-1)!;
+  if (Array.isArray(node) && typeof key === "number") {
+    // A list position: insert before it, remove it, or replace it. Assigning
+    // would overwrite the entry an insert is supposed to push along.
+    if (change.op === "insert") node.splice(key, 0, change.value);
+    else if (change.value === null) node.splice(key, 1);
+    else node.splice(key, 1, change.value);
+    return;
+  }
   if (change.value === null) delete node[key];
   else node[key] = change.value;
 }

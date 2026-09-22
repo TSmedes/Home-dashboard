@@ -21,10 +21,13 @@ const PatchSchema = z.object({
           .array(z.union([z.string().min(1), z.number().int().min(0), z.object({ id: z.string().min(1) })]))
           .min(1),
         value: z.unknown(),
+        op: z.literal("insert").optional(),
       }),
     )
     .min(1)
-    .max(50),
+    // One save from edit mode is one request: re-laying out a page is easily
+    // two dozen edits, and splitting them would mean a half-written config.
+    .max(200),
 });
 
 export const apiRoutes =
@@ -87,7 +90,7 @@ export const apiRoutes =
       const body = PatchSchema.safeParse(request.body);
       if (!body.success) return reply.status(400).send({ error: "expected { changes: [{ path, value }] }" });
       try {
-        const saved = await configStore.patch(body.data.changes.map(({ path, value }) => ({ path, value })));
+        const saved = await configStore.patch(body.data.changes.map(({ path, value, op }) => ({ path, value, op })));
         deps.onConfigWritten();
         return { config: saved, activeProfile: dashboard.activeProfile };
       } catch (cause) {

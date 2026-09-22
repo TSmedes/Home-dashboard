@@ -339,6 +339,13 @@ export interface ConfigChange {
   path: PathSegment[];
   /** null removes the key, returning that setting to its default. */
   value: unknown;
+  /**
+   * "insert" puts `value` before the list position the path ends at, instead
+   * of replacing what is there. Without it a list can only be rewritten whole,
+   * which costs every comment inside it - and the widget list is where the
+   * comments explaining the dashboard live.
+   */
+  op?: "insert";
 }
 
 /** A place from the settings location search. */

@@ -1,4 +1,5 @@
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -325,6 +326,102 @@ describe("ConfigStore.patch", () => {
     const written = await readFile(path, "utf8");
     expect(written).toContain("Edited by hand");
     expect(written).toContain("clock: 24h");
+  });
+});
+
+/**
+ * The file a fresh install starts from, and the one whose comments explain the
+ * dashboard to whoever opens it next.
+ */
+const examplePath = fileURLToPath(new URL("../../../../config/config.example.yaml", import.meta.url));
+const hashes = (text: string) => (text.match(/#/g) ?? []).length;
+
+/**
+ * Edit mode can rewrite the layout from the wall, which makes config.yaml the
+ * one file the dashboard edits on the owner's behalf. These tests exist to
+ * notice the day it starts eating their notes: writing the widget list back as
+ * one value costs sixteen of the example's comments, and nothing else in the
+ * suite would have failed.
+ */
+describe("ConfigStore.patch on the shipped example", () => {
+  it("keeps every comment when a page is re-laid-out", async () => {
+    const source = await readFile(examplePath, "utf8");
+    const path = await tempConfig(source);
+    const store = await ConfigStore.open(path);
+
+    // What dragging two tiles and resizing one saves.
+    await store.patch([
+      { path: ["profiles", "day", "widgets", { id: "clock" }, "grid", "col"], value: 5 },
+      { path: ["profiles", "day", "widgets", { id: "weather" }, "grid", "col"], value: 1 },
+      { path: ["profiles", "day", "widgets", { id: "agenda" }, "grid", "colSpan"], value: 6 },
+    ]);
+
+    const written = await readFile(path, "utf8");
+    expect(hashes(written)).toBe(hashes(source));
+  });
+
+  it("touches only the lines it edits", async () => {
+    const source = await readFile(examplePath, "utf8");
+    const path = await tempConfig(source);
+    const store = await ConfigStore.open(path);
+
+    await store.patch([{ path: ["profiles", "day", "widgets", { id: "clock" }, "grid", "col"], value: 5 }]);
+
+    const written = await readFile(path, "utf8");
+    const before = source.split("\n");
+    const after = written.split("\n");
+    expect(after).toHaveLength(before.length);
+    const changed = before.filter((line, i) => line !== after[i]);
+    expect(changed).toHaveLength(1);
+    expect(changed[0]).toContain("col: 1");
+    expect(written).toContain("grid: { col: 5, row: 1, colSpan: 4, rowSpan: 2 }");
+  });
+
+  it("keeps every comment when a widget is added and another removed", async () => {
+    const source = await readFile(examplePath, "utf8");
+    const path = await tempConfig(source);
+    const store = await ConfigStore.open(path);
+    const before = store.current.profiles.day!.widgets;
+    const dropped = before.findIndex((w) => w.id === "lights");
+
+    await store.patch([
+      { path: ["profiles", "day", "widgets", dropped], value: null },
+      {
+        path: ["profiles", "day", "widgets", before.length - 1],
+        value: { id: "river-2", type: "river", grid: { col: 1, row: 7, colSpan: 4, rowSpan: 2 } },
+        op: "insert",
+      },
+    ]);
+
+    const written = await readFile(path, "utf8");
+    const ids = store.current.profiles.day!.widgets.map((w) => w.id);
+    expect(ids).toContain("river-2");
+    expect(ids).not.toContain("lights");
+    // The only notes lost are the ones that were explaining the lights widget.
+    const notes = (text: string) =>
+      text.split("\n").map((line) => line.trim()).filter((line) => line.startsWith("#"));
+    const kept = new Set(notes(written));
+    const lost = notes(source).filter((line) => !kept.has(line));
+    expect(lost.join(" ")).toContain("lights has the column to itself");
+    expect(lost).toHaveLength(2);
+  });
+
+  it("writes a new widget's grid inline, the way the file writes every other one", async () => {
+    const source = await readFile(examplePath, "utf8");
+    const path = await tempConfig(source);
+    const store = await ConfigStore.open(path);
+    const count = store.current.profiles.day!.widgets.length;
+
+    await store.patch([
+      {
+        path: ["profiles", "day", "widgets", count],
+        value: { id: "river-2", type: "river", grid: { col: 1, row: 7, colSpan: 4, rowSpan: 2 } },
+        op: "insert",
+      },
+    ]);
+
+    const written = await readFile(path, "utf8");
+    expect(written).toContain("grid: { col: 1, row: 7, colSpan: 4, rowSpan: 2 }");
   });
 });
 
