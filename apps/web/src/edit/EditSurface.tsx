@@ -6,6 +6,7 @@ import { useEdit } from "./EditContext.js";
 import { AddWidgetPicker } from "./AddWidgetPicker.js";
 import { WidgetOptionsPanel } from "./WidgetOptionsPanel.js";
 import { EditableGrid } from "./EditableGrid.js";
+import { EditProfilePanel } from "./EditProfilePanel.js";
 import { EditSelection } from "./EditSelection.js";
 import { EditToolbar } from "./EditToolbar.js";
 import { addWidget, nextPageNumber, onPage, pageNumbers, removePage } from "./mutations.js";
@@ -24,6 +25,7 @@ export function EditSurface() {
   const state = api.state;
   const [adding, setAdding] = useState(false);
   const [settingsFor, setSettingsFor] = useState<string | null>(null);
+  const [screens, setScreens] = useState(false);
 
   // Escape leaves, as it does everywhere else on the dashboard. It cancels
   // rather than saves: the destructive reading of an ambiguous key press is
@@ -65,6 +67,7 @@ export function EditSurface() {
         api={api}
         state={state}
         onAdd={() => setAdding(true)}
+        onScreens={() => setScreens(true)}
         onAddPage={() => api.setPage(nextPageNumber(profile.widgets))}
         onRemovePage={() => {
           const others = pageNumbers(profile.widgets, state.page).filter((n) => n !== state.page);
@@ -114,6 +117,15 @@ export function EditSurface() {
           />
         );
       })()}
+      {screens && (
+        <EditProfilePanel
+          config={state.draft}
+          current={state.profileName}
+          update={api.update}
+          onSwitch={api.setProfile}
+          onClose={() => setScreens(false)}
+        />
+      )}
       {adding && (
         <AddWidgetPicker
           availableSources={availableSources}

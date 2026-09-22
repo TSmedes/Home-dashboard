@@ -14,12 +14,14 @@ export function EditToolbar({
   api,
   state,
   onAdd,
+  onScreens,
   onAddPage,
   onRemovePage,
 }: {
   api: EditApi;
   state: EditState;
   onAdd: () => void;
+  onScreens: () => void;
   onAddPage: () => void;
   onRemovePage: () => void;
 }) {
@@ -41,6 +43,9 @@ export function EditToolbar({
             {profileLabel(name)}
           </button>
         ))}
+        <button type="button" className="edit-chip" aria-label="Screens and when they show" onClick={onScreens}>
+          &hellip;
+        </button>
       </div>
 
       <div className="edit-bar__group" role="group" aria-label="Page">
