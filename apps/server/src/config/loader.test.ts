@@ -406,6 +406,30 @@ describe("ConfigStore.patch on the shipped example", () => {
     expect(lost).toHaveLength(2);
   });
 
+  it("writes a new widget the same way even when the save falls back to reprinting", async () => {
+    // A list written back whole - the countdowns - cannot be a text edit, and
+    // the whole batch reprints. Which edits happened to share a save must not
+    // decide whether a widget gets an inline grid or five lines of block map.
+    const source = await readFile(examplePath, "utf8");
+    const path = await tempConfig(source);
+    const store = await ConfigStore.open(path);
+    const count = store.current.profiles.day!.widgets.length;
+
+    await store.patch([
+      { path: ["countdowns", "items"], value: [{ name: "Holiday", date: "2026-07-14" }] },
+      {
+        path: ["profiles", "day", "widgets", count],
+        value: { id: "river-2", type: "river", grid: { col: 1, row: 7, colSpan: 4, rowSpan: 2 } },
+        op: "insert",
+      },
+    ]);
+
+    const written = await readFile(path, "utf8");
+    expect(written).toContain("grid: { col: 1, row: 7, colSpan: 4, rowSpan: 2 }");
+    expect(written).toContain("- id: river-2");
+    expect(hashes(written)).toBe(hashes(source));
+  });
+
   it("writes a new widget's grid inline, the way the file writes every other one", async () => {
     const source = await readFile(examplePath, "utf8");
     const path = await tempConfig(source);

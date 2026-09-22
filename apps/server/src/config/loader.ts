@@ -1,7 +1,7 @@
 import { readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { isScalar, isSeq, parseDocument, type Document } from "yaml";
-import { editText, type ResolvedChange } from "./textEdits.js";
+import { editText, inlineScalarMaps, type ResolvedChange } from "./textEdits.js";
 import type { ZodIssue } from "zod";
 import {
   DashboardConfigSchema,
@@ -182,7 +182,7 @@ export class ConfigStore {
       if (op === "insert") {
         // Push the rest of the list along rather than overwriting an entry.
         const seq = doc.getIn(path.slice(0, -1), true);
-        if (isSeq(seq)) seq.items.splice(path.at(-1) as number, 0, doc.createNode(value));
+        if (isSeq(seq)) seq.items.splice(path.at(-1) as number, 0, ConfigStore.#entry(doc, value, true));
         continue;
       }
       // null means "back to the default": drop the key rather than write it.
@@ -196,9 +196,28 @@ export class ConfigStore {
       const node = doc.getIn(path, true);
       // Mutating the existing scalar keeps its quoting and trailing comment.
       if (isScalar(node) && typeof value !== "object") node.value = value as never;
+      else if (typeof value === "object" && value !== null) doc.setIn(path, ConfigStore.#entry(doc, value, false));
       else doc.setIn(path, value);
     }
     return doc.toString();
+  }
+
+  /**
+   * A node written the way this file is written by hand.
+   *
+   * The surgical path already does this; the fallback has to as well, or which
+   * edits happened to be in the same save would decide whether a new widget
+   * gets `grid: { col: 1, row: 1 }` or five lines of block map.
+   *
+   * `spaced` is for a list entry, which this file separates from the one
+   * before with a blank line. A whole value being written back is not an
+   * entry, and a blank line after its key would just look like a mistake.
+   */
+  static #entry(doc: Document, value: unknown, spaced: boolean) {
+    const node = doc.createNode(value);
+    inlineScalarMaps(node);
+    if (spaced) node.spaceBefore = true;
+    return node;
   }
 
   /** Validate and persist a whole new config, preserving comments. */

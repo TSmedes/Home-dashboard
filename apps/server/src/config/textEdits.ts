@@ -52,7 +52,7 @@ function render(value: string | number | boolean, like?: Scalar): string {
  * dashboard that spread its grid over five lines would stand out as the one
  * the machine wrote.
  */
-function inlineScalarMaps(node: unknown): void {
+export function inlineScalarMaps(node: unknown): void {
   if (isMap(node)) {
     for (const pair of node.items as Pair[]) {
       const value = pair.value;
