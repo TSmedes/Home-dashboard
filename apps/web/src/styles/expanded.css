@@ -56,10 +56,12 @@
   gap: var(--space-2);
 }
 
-/* A detail view taller than the screen scrolls inside the card; the page never does. */
+/* A detail view taller than the screen scrolls inside the card; the page never
+   does. Up and down only: anything wide scrolls within its own strip. */
 .widget__scroll {
   flex: 1;
   min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -353,19 +355,26 @@
   list-style: none;
 }
 
+/* Every column may shrink: the row fits the card rather than scrolling sideways. */
 .wxd__day {
   display: grid;
-  grid-template-columns: minmax(5.5em, 1.3fr) 30px 4.6em 2.6em minmax(60px, 2fr) 2.6em 4.2em;
-  gap: var(--space-3);
+  grid-template-columns:
+    minmax(0, 1.3fr) 26px minmax(0, 3.6em) minmax(0, 2.5em)
+    minmax(36px, 1.6fr) minmax(0, 2.5em) minmax(0, 3.4em);
+  gap: var(--space-2);
   align-items: center;
-  padding: 10px 14px;
+  padding: 10px;
   background: var(--row);
   border-radius: var(--radius-inner);
 }
 
 .wxd__day-name {
+  min-width: 0;
+  overflow: hidden;
   font-weight: 650;
   color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .wxd__day-icon {
@@ -389,6 +398,7 @@
 .wxd__day-sum {
   font-size: var(--size-xs);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .wxd__day-min,
@@ -422,8 +432,11 @@
 }
 
 .wxd__day-wind {
+  min-width: 0;
+  overflow: hidden;
   font-size: var(--size-xs);
   text-align: right;
+  white-space: nowrap;
   color: var(--ink-3);
 }
 
