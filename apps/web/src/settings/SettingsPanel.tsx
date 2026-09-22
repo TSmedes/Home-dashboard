@@ -6,6 +6,7 @@ import { useNow } from "../lib/useNow.js";
 import { WIDGET_NAMES } from "../widgets/names.js";
 import { CommitInput, Segmented, Switch } from "./controls.js";
 import { ago, overrideSummary, profileLabel, scheduleChanges } from "./model.js";
+import { Row, Section } from "./parts.js";
 
 /** Settings closes itself after this long untouched, so the wall never stays on it. */
 const IDLE_CLOSE_MS = 120_000;
@@ -102,27 +103,6 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           <StatusSection connection={connection} />
         </div>
       </div>
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="settings__section">
-      <h2 className="settings__heading">{title}</h2>
-      <div className="settings__card">{children}</div>
-    </section>
-  );
-}
-
-function Row({ label, detail, children }: { label: string; detail?: string; children: React.ReactNode }) {
-  return (
-    <div className="settings__row">
-      <span className="settings__label">
-        {label}
-        {detail && <span className="settings__detail">{detail}</span>}
-      </span>
-      <span className="settings__control">{children}</span>
     </div>
   );
 }

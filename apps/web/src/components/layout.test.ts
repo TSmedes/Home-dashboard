@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { WidgetInstance } from "@home-dash/shared";
-import { layout } from "./layout.js";
+import { groupWidgets, layout } from "./layout.js";
 
 const widget = (id: string, grid: Partial<WidgetInstance["grid"]>, enabled = true): WidgetInstance => ({
   id,
@@ -123,5 +123,46 @@ describe("layout stacks", () => {
     // Without bins the union would stop at row 15; it must still reach 24.
     const [cell] = layout(column, (w) => w.id === "lights").cells;
     expect(cell).toMatchObject({ row: "9 / span 16" });
+  });
+});
+
+describe("groupWidgets", () => {
+  it("keeps every member, showing or not, unlike layout", () => {
+    const [clock, band] = groupWidgets(night);
+    expect(clock).toMatchObject({ kind: "widget", key: "clock" });
+    // layout() drops the two switched-off widgets; a group keeps all four.
+    expect(band).toMatchObject({ kind: "band", members: [{ id: "weather" }, { id: "agenda" }, { id: "todo" }, { id: "lights" }] });
+  });
+
+  it("takes a group's place from its first member", () => {
+    const widgets = [
+      widget("a", { col: 1, row: 1 }),
+      widget("b", { row: 2, share: true }),
+      widget("c", { col: 1, row: 3 }),
+      widget("d", { row: 2, share: true }),
+    ];
+    expect(groupWidgets(widgets).map((g) => g.key)).toEqual(["a", "band 2 / span 1", "c"]);
+  });
+
+  it("shares a row only with widgets covering the same rows", () => {
+    // Starting on row 2 is not enough: a taller neighbour is its own band.
+    const widgets = [
+      widget("short", { row: 2, share: true }),
+      widget("tall", { row: 2, rowSpan: 3, share: true }),
+    ];
+    expect(groupWidgets(widgets).map((g) => g.members.map((w) => w.id))).toEqual([["short"], ["tall"]]);
+  });
+
+  it("treats a widget naming a stack as a stack member even if it also shares", () => {
+    // The two are mutually exclusive and the editor never writes both, but
+    // layout has always read `stack` first, so grouping must agree.
+    const widgets = [widget("a", { col: 1, row: 1, stack: "right", share: true })];
+    expect(groupWidgets(widgets)[0]).toMatchObject({ kind: "stack", name: "right" });
+  });
+
+  it("gathers a stack under its name", () => {
+    expect(groupWidgets(column)).toEqual([
+      { kind: "stack", key: "stack right", name: "right", members: column },
+    ]);
   });
 });
