@@ -59,6 +59,7 @@ lights: []
 # collected every other week, set `every: 2` and give any date it was (or will
 # be) collected as `anchor`. Holiday shifts go in `moved`; cancelled pickups in
 # `skip`. The evening before a pickup, the widget says to put the bin out.
+# The tile itself only appears the day before a collection and the day of it.
 bins: []
 # bins:
 #   - { name: Trash, day: tue }
@@ -134,6 +135,13 @@ services:
 # Layout is a 12-column grid. `col` and `row` are 1-based; spans default to 1.
 # `enabled: false` switches a widget off and leaves its space empty.
 #
+# `stack: <name>` on two or more widgets makes them share one column: whichever
+# are showing split the combined rectangle top to bottom, so one leaving never
+# leaves a hole. Worth it next to a widget that comes and goes on its own -
+# bin day is only on the wall either side of a collection, and whatever it is
+# stacked with takes the column the rest of the week. (`share: true` is the
+# same idea for a full-width row; see the night profile below.)
+#
 # Pages: give a widget `page: 2` (or 3...) to put it on another page. Pages sit
 # side by side and change with a swipe; each page has its own grid. After
 # `returnToFirstPage` seconds without a touch the screen slides back to page 1
@@ -167,6 +175,8 @@ profiles:
         title: "🏡 To-Do"
         grid: { col: 6, row: 3, colSpan: 4, rowSpan: 4 }
 
+      # Sharing the right-hand column with bin day on page 2 would look like
+      # `stack: right-column` on both; here lights has the column to itself.
       - id: lights
         type: lights
         title: "Lights"
@@ -188,13 +198,17 @@ profiles:
         page: 2
         grid: { col: 6, row: 1, colSpan: 4, rowSpan: 3 }
 
+      # Only on the wall the day before a collection and the day itself. Give
+      # it a `stack:` name shared with the widget above or below it and that
+      # one takes the space the rest of the week.
       - id: bins
         type: bins
         title: "Bin day"
         page: 2
         grid: { col: 10, row: 1, colSpan: 3, rowSpan: 3 }
 
-      # options: { limit: 6 } caps how many are shown.
+      # The tile shows the next one only, big enough to read across a room;
+      # tapping it lists them all. options: { limit: 3 } shows more.
       - id: countdowns
         type: countdowns
         title: "Countdowns"

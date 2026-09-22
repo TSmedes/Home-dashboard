@@ -1,6 +1,7 @@
 import type { MouseEvent } from "react";
 import { GRID_COLUMNS, type DashboardConfig, type WidgetInstance } from "@home-dash/shared";
 import type { WidgetEnvelope } from "@home-dash/shared";
+import { useNow } from "../lib/useNow.js";
 import { widgetFor } from "../widgets/registry.js";
 import { WidgetErrorBoundary } from "./ErrorBoundary.js";
 import { OWN_CONTROLS, useExpand } from "./Expanded.js";
@@ -16,7 +17,12 @@ interface Props {
 }
 
 export function DashboardGrid({ config, widgets, envelopes, availableSources }: Props) {
-  const { rows, cells } = layout(widgets);
+  // The minute tick is what puts bin day back on the wall at midnight without
+  // anyone reloading the page.
+  const now = useNow(60_000);
+  const showing = (instance: WidgetInstance) =>
+    instance.enabled && (widgetFor(instance.type)?.relevant?.({ instance, config, now }) ?? true);
+  const { rows, cells } = layout(widgets, showing);
   const { expand } = useExpand();
 
   /** Whether this widget can grow to full screen: it has a detail view and data to show in it. */
@@ -89,27 +95,36 @@ export function DashboardGrid({ config, widgets, envelopes, availableSources }: 
         gridTemplateRows: `repeat(${rows}, 1fr)`,
       }}
     >
-      {cells.map((cell) =>
-        cell.kind === "widget" ? (
+      {cells.map((cell) => {
+        if (cell.kind === "widget") {
+          return (
+            <div
+              key={cell.key}
+              className="grid__cell"
+              style={{ gridColumn: cell.column, gridRow: cell.row }}
+              onClick={onCellClick(cell.widget)}
+            >
+              {render(cell.widget)}
+            </div>
+          );
+        }
+        // A shared row spans the full width and its widgets split it evenly; a
+        // stack keeps its own rectangle and they split it top to bottom.
+        const band = cell.kind === "band";
+        return (
           <div
             key={cell.key}
-            className="grid__cell"
-            style={{ gridColumn: cell.column, gridRow: cell.row }}
-            onClick={onCellClick(cell.widget)}
+            className={band ? "grid__band" : "grid__stack"}
+            style={{ gridColumn: band ? "1 / -1" : cell.column, gridRow: cell.row }}
           >
-            {render(cell.widget)}
-          </div>
-        ) : (
-          // A shared row spans the full width; its widgets split it evenly.
-          <div key={cell.key} className="grid__band" style={{ gridColumn: "1 / -1", gridRow: cell.row }}>
             {cell.widgets.map((widget) => (
               <div key={widget.id} className="grid__cell" onClick={onCellClick(widget)}>
                 {render(widget)}
               </div>
             ))}
           </div>
-        ),
-      )}
+        );
+      })}
     </div>
   );
 }

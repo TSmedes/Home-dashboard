@@ -59,6 +59,15 @@ export function nextCollection(bin: BinConfig, today: string): { date: string; m
   return candidates.sort((a, b) => a.date.localeCompare(b.date))[0] ?? null;
 }
 
+/**
+ * Whether a pickup is close enough to be worth a tile: the day before, or the
+ * day itself. A whole-day window, unlike the `out-tonight` callout, so the
+ * reminder is on the wall from breakfast rather than appearing at teatime.
+ */
+export function binsDueSoon(bins: BinConfig[], now: Date, timezone: string): boolean {
+  return upcomingPickups(bins, now, timezone).some((pickup) => pickup.daysAway <= 1);
+}
+
 /** Every bin's next pickup, soonest first. */
 export function upcomingPickups(bins: BinConfig[], now: Date, timezone: string): Pickup[] {
   const today = dateKey(now, timezone);

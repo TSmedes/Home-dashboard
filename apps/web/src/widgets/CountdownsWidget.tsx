@@ -4,7 +4,11 @@ import { dateKey, dayLabel, daysBetween } from "../lib/zoned.js";
 import type { WidgetProps } from "./types.js";
 
 interface CountdownOptions {
-  /** How many to show; the rest wait their turn. */
+  /**
+   * How many to show; the rest wait their turn. One by default, so the tile
+   * can give it room to be read across the room rather than cutting names off.
+   * Tapping the tile lists every countdown.
+   */
   limit?: number;
 }
 
@@ -18,7 +22,7 @@ export function CountdownsWidget({ instance, config, envelope }: WidgetProps<Cou
   if (!data) return null;
 
   const today = dateKey(now, config.location.timezone);
-  const limit = (instance.options as CountdownOptions).limit ?? 6;
+  const limit = (instance.options as CountdownOptions).limit ?? 1;
   const items = data.countdowns.filter((c) => c.date >= today).slice(0, limit);
 
   if (items.length === 0) {
@@ -33,7 +37,7 @@ export function CountdownsWidget({ instance, config, envelope }: WidgetProps<Cou
   }
 
   return (
-    <ul className="countdowns">
+    <ul className="countdowns" data-single={items.length === 1}>
       {items.map((item) => {
         const days = daysBetween(today, item.date);
         return (

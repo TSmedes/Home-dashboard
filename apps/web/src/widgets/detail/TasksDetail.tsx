@@ -110,6 +110,7 @@ export function TasksDetail({ instance, config, envelope }: WidgetProps<TasksSna
                           clock={config.units.clock}
                           showAssignee={!who}
                           showTags
+                          showNotes
                           onFinish={() => actions.finish(task)}
                           onUndo={() => actions.undo(task.id)}
                         />

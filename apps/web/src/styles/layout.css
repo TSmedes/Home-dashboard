@@ -103,6 +103,19 @@
   flex: 1 1 0;
 }
 
+/* A shared column: whichever of its widgets are showing split the height. */
+.grid__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.grid__stack > .grid__cell {
+  flex: 1 1 0;
+}
+
 .widget {
   display: flex;
   flex-direction: column;
@@ -1572,6 +1585,37 @@
 .countdown__date {
   font-size: var(--size-sm);
   color: var(--ink-2);
+}
+
+/* On its own it gets the whole tile: the number over the name, and the name
+   wrapping rather than being cut off at a three-column width. */
+.countdowns[data-single="true"] {
+  justify-content: center;
+}
+
+.countdowns[data-single="true"] .countdown {
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  text-align: center;
+}
+
+.countdowns[data-single="true"] .countdown__days {
+  font-size: var(--size-2xl);
+}
+
+.countdowns[data-single="true"] .countdown__what {
+  align-items: center;
+  max-width: 100%;
+}
+
+.countdowns[data-single="true"] .countdown__name {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--size-md);
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 /* --- River ----------------------------------------------------------------- */

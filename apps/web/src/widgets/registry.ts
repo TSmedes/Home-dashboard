@@ -1,4 +1,5 @@
 import { BinDayWidget } from "./BinDayWidget.js";
+import { binsDueSoon } from "./binDay.js";
 import { CalendarWidget } from "./CalendarWidget.js";
 import { ClockWidget } from "./ClockWidget.js";
 import { CommuteWidget } from "./CommuteWidget.js";
@@ -83,6 +84,9 @@ export const widgetRegistry: Record<string, WidgetDefinition> = {
     type: "bins",
     component: BinDayWidget as WidgetDefinition["component"],
     chrome: true,
+    // A bin reminder is worth the wall the day before and the day itself, and
+    // is clutter the rest of the week.
+    relevant: ({ config, now }) => binsDueSoon(config.bins, now, config.location.timezone),
   },
   countdowns: {
     type: "countdowns",

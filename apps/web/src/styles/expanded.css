@@ -608,6 +608,30 @@
   color: var(--ink-3);
 }
 
+/* The task's notes, clamped to three lines so one long note cannot push every
+   other task off the screen. A tap gives the whole thing back. */
+.task__notes {
+  display: -webkit-box;
+  width: 100%;
+  margin-top: 2px;
+  padding: 0;
+  overflow: hidden;
+  font: inherit;
+  font-size: var(--size-sm);
+  color: var(--ink-2);
+  text-align: left;
+  white-space: pre-wrap;
+  background: none;
+  border: 0;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.task__notes[data-expanded="true"] {
+  display: block;
+  overflow: visible;
+}
+
 /* --- Lights ----------------------------------------------------------------- */
 
 .lightsd__bar {

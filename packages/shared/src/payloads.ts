@@ -90,6 +90,8 @@ export interface TaskItem {
   id: string;
   projectId: string;
   title: string;
+  /** The task's notes in TickTick. Absent when it has none. */
+  notes?: string;
   /** ISO instant, or YYYY-MM-DD when `dueAllDay`. Absent when undated. */
   dueDate?: string;
   dueAllDay: boolean;
