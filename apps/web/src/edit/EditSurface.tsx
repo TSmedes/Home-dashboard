@@ -1,7 +1,9 @@
 import { useEffect } from "react";
+import type { WidgetInstance } from "@home-dash/shared";
 import { useDashboard } from "../lib/dashboard.js";
 import { useEdit } from "./EditContext.js";
 import { EditableGrid } from "./EditableGrid.js";
+import { EditSelection } from "./EditSelection.js";
 import { EditToolbar } from "./EditToolbar.js";
 import { onPage } from "./mutations.js";
 
@@ -35,6 +37,22 @@ export function EditSurface() {
   if (!profile) return null;
 
   const widgets = onPage(profile.widgets, state.page);
+  const selected = widgets.find((w) => w.id === state.selected) ?? null;
+
+  /**
+   * The one way the page's widget list is changed. It reads the profile out of
+   * the draft being updated rather than the one rendered, so two changes in
+   * the same turn cannot undo each other.
+   */
+  const change = (recipe: (widgets: WidgetInstance[]) => WidgetInstance[]) =>
+    api.update((draft) => {
+      const current = draft.profiles[state.profileName];
+      if (!current) return draft;
+      return {
+        ...draft,
+        profiles: { ...draft.profiles, [state.profileName]: { ...current, widgets: recipe(current.widgets) } },
+      };
+    });
 
   return (
     <div className="edit" role="region" aria-label="Editing the dashboard layout">
@@ -51,18 +69,11 @@ export function EditSurface() {
             availableSources={availableSources}
             selected={state.selected}
             onSelect={api.select}
-            onChange={(change) =>
-              api.update((draft) => ({
-                ...draft,
-                profiles: {
-                  ...draft.profiles,
-                  [state.profileName]: { ...profile, widgets: change(profile.widgets) },
-                },
-              }))
-            }
+            onChange={change}
           />
         )}
       </div>
+      {selected && <EditSelection widgets={widgets} selected={selected} onChange={change} />}
     </div>
   );
 }

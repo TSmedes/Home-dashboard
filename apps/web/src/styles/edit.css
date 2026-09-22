@@ -241,3 +241,69 @@
   border-color: var(--warn);
   background: color-mix(in srgb, var(--warn) 10%, transparent);
 }
+
+/* The selection bar: what can be done to the tile you have picked. It sits at
+   the bottom so a thumb reaches it and it never covers the tile being worked
+   on, which is usually nearer the top. */
+.edit-selection {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: var(--edge-width) solid var(--edge);
+}
+
+.edit-selection__name {
+  font-size: var(--size-md);
+  font-weight: 600;
+}
+
+.edit-selection__note {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--size-sm);
+}
+
+.edit-stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.edit-stepper__label {
+  margin-right: var(--space-1);
+  color: var(--ink-3);
+  font-size: var(--size-sm);
+}
+
+.edit-stepper__value {
+  min-width: 2ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--size-base);
+}
+
+.edit-stepper button {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--ground);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--size-md);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.edit-stepper button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.edit-stepper button:active:not(:disabled) {
+  background: var(--edge);
+}
