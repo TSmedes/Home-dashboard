@@ -1,11 +1,27 @@
 import type { ComponentType } from "react";
 import type { DashboardConfig, WidgetEnvelope, WidgetInstance } from "@home-dash/shared";
+import type { OptionSpec } from "../edit/options.js";
 
 export interface WidgetProps<T = unknown> {
   instance: WidgetInstance;
   config: DashboardConfig;
   /** Null for widgets that need no server data, such as the clock. */
   envelope: WidgetEnvelope<T> | null;
+}
+
+/** What a widget's settings can be worked out from, when they are not fixed. */
+export interface OptionContext {
+  config: DashboardConfig;
+  /** The live data, for settings whose choices come from it - who tasks belong to. */
+  envelope: WidgetEnvelope<unknown> | null;
+}
+
+/** What the widget's own panel needs to edit the settings it reads. */
+export interface WidgetConfigProps {
+  instance: WidgetInstance;
+  /** The staged config. Nothing here is written until Save. */
+  config: DashboardConfig;
+  update: (recipe: (draft: DashboardConfig) => DashboardConfig) => void;
 }
 
 export interface WidgetDefinition {
@@ -33,4 +49,23 @@ export interface WidgetDefinition {
    * off. Omit it for a widget that always earns its place.
    */
   relevant?: (args: { instance: WidgetInstance; config: DashboardConfig; now: Date }) => boolean;
+  /**
+   * The settings this widget reads out of its own `options`, described so edit
+   * mode can build the controls. A function when the choices depend on what is
+   * configured or on the live data.
+   */
+  options?: OptionSpec[] | ((context: OptionContext) => OptionSpec[]);
+  /**
+   * Editor for the settings this widget reads from outside its own options -
+   * the countdowns list, the commute destinations, the bins. Generated
+   * controls cannot express those, so a widget that needs one brings its own.
+   */
+  configEditor?: ComponentType<WidgetConfigProps>;
+}
+
+/** The settings a widget offers here and now. */
+export function specsFor(definition: WidgetDefinition, context: OptionContext): OptionSpec[] {
+  const { options } = definition;
+  if (!options) return [];
+  return typeof options === "function" ? options(context) : options;
 }

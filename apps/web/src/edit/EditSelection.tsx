@@ -14,6 +14,7 @@ interface Props {
   pages: number[];
   onChange: (change: (widgets: WidgetInstance[]) => WidgetInstance[]) => void;
   onRemoved: () => void;
+  onSettings: () => void;
 }
 
 /** A pair of buttons around a number, sized for a finger. */
@@ -59,7 +60,7 @@ function Stepper({
  * of the group's rectangle - so it says so instead of offering buttons that
  * would do nothing.
  */
-export function EditSelection({ widgets, all, selected, pages, onChange, onRemoved }: Props) {
+export function EditSelection({ widgets, all, selected, pages, onChange, onRemoved, onSettings }: Props) {
   const name = selected.title || WIDGET_NAMES[selected.type] || selected.type;
   const grouped = selected.grid.share || selected.grid.stack !== undefined;
 
@@ -134,6 +135,9 @@ export function EditSelection({ widgets, all, selected, pages, onChange, onRemov
 
       <span className="edit-selection__spacer" />
 
+      <button type="button" className="button" onClick={onSettings}>
+        Settings
+      </button>
       {/* Removing is not the same as switching off, so both are offered: off
           keeps the widget's place for later, remove gives the space back. */}
       <button

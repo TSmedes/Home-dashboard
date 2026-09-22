@@ -406,3 +406,20 @@
   width: 100%;
   order: 1;
 }
+
+.edit-picker__panel--wide {
+  width: min(680px, 100%);
+  max-height: min(80vh, 760px);
+}
+
+.edit-picker__scroll {
+  padding: var(--space-3) var(--space-4) var(--space-5);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Sections inside the panel are the settings screen's own, so they need none
+   of its outer chrome. */
+.edit-picker__scroll .settings__section {
+  margin: 0 0 var(--space-4);
+}

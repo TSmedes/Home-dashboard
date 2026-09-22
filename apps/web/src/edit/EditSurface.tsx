@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import type { WidgetInstance } from "@home-dash/shared";
 import { useDashboard } from "../lib/dashboard.js";
+import { widgetFor } from "../widgets/registry.js";
 import { useEdit } from "./EditContext.js";
 import { AddWidgetPicker } from "./AddWidgetPicker.js";
+import { WidgetOptionsPanel } from "./WidgetOptionsPanel.js";
 import { EditableGrid } from "./EditableGrid.js";
 import { EditSelection } from "./EditSelection.js";
 import { EditToolbar } from "./EditToolbar.js";
@@ -21,6 +23,7 @@ export function EditSurface() {
   const api = useEdit();
   const state = api.state;
   const [adding, setAdding] = useState(false);
+  const [settingsFor, setSettingsFor] = useState<string | null>(null);
 
   // Escape leaves, as it does everywhere else on the dashboard. It cancels
   // rather than saves: the destructive reading of an ambiguous key press is
@@ -93,8 +96,24 @@ export function EditSurface() {
           pages={pageNumbers(profile.widgets, state.page)}
           onChange={change}
           onRemoved={() => api.select(null)}
+          onSettings={() => setSettingsFor(selected.id)}
         />
       )}
+      {settingsFor && (() => {
+        const widget = profile.widgets.find((w) => w.id === settingsFor);
+        if (!widget) return null;
+        const key = widgetFor(widget.type)?.dataKey;
+        return (
+          <WidgetOptionsPanel
+            widget={widget}
+            config={state.draft}
+            envelope={key ? (envelopes[key] ?? null) : null}
+            onChange={change}
+            update={api.update}
+            onClose={() => setSettingsFor(null)}
+          />
+        );
+      })()}
       {adding && (
         <AddWidgetPicker
           availableSources={availableSources}
