@@ -49,7 +49,43 @@ export function dueLabel(task: TaskItem, now: Date, timezone: string, clock: "12
  * an initial, and there is room on the line for a short name.
  */
 export function assigneeLabel(task: TaskItem): string | null {
-  if (!task.assignee) return null;
-  if (task.assignee.includes("@")) return task.assignee.split("@")[0] ?? task.assignee;
-  return task.assignee.trim().split(/\s+/)[0] ?? task.assignee;
+  return task.assignee ? firstName(task.assignee) : null;
+}
+
+/** "Toby" from "Toby Smedes", or from "toby@example.com" when only an email is known. */
+export function firstName(name: string): string {
+  if (name.includes("@")) return name.split("@")[0] ?? name;
+  return name.trim().split(/\s+/)[0] ?? name;
+}
+
+export interface TaskGroup {
+  key: "overdue" | "today" | "upcoming" | "undated";
+  label: string;
+  tasks: TaskItem[];
+}
+
+/**
+ * Tasks in the order they need doing: overdue, due today, upcoming by date,
+ * then anything undated. Groups with nothing in them are left out.
+ */
+export function groupTasks(tasks: TaskItem[], now: Date, timezone: string): TaskGroup[] {
+  const groups: TaskGroup[] = [
+    { key: "overdue", label: "Overdue", tasks: [] },
+    { key: "today", label: "Today", tasks: [] },
+    { key: "upcoming", label: "Upcoming", tasks: [] },
+    { key: "undated", label: "No date", tasks: [] },
+  ];
+  const [overdue, today, upcoming, undated] = groups as [TaskGroup, TaskGroup, TaskGroup, TaskGroup];
+
+  for (const task of tasks) {
+    const due = dueLabel(task, now, timezone, "24h");
+    if (!due) undated.tasks.push(task);
+    else if (due.tone === "overdue") overdue.tasks.push(task);
+    else if (due.tone === "today") today.tasks.push(task);
+    else upcoming.tasks.push(task);
+  }
+  // An all-day date parses as UTC midnight, early enough to sort before that day's timed tasks.
+  upcoming.tasks.sort((a, b) => Date.parse(a.dueDate!) - Date.parse(b.dueDate!));
+
+  return groups.filter((group) => group.tasks.length > 0);
 }

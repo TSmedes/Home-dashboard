@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CalendarEvent } from "@home-dash/shared";
-import { buildAgenda } from "./agenda.js";
+import { buildAgenda, eventSpan } from "./agenda.js";
 
 const LA = "America/Los_Angeles";
 // Monday 21 September 2026, noon in Los Angeles.
@@ -150,5 +150,23 @@ describe("buildAgenda", () => {
       ["Tomorrow", ["Tue morning"]],
     ]);
     expect(titles(afterMidnight)).toEqual([["Today", ["Tue morning"]]]);
+  });
+});
+
+describe("eventSpan", () => {
+  it("gives a timed event's start and end", () => {
+    const event = timed("Dentist", "2026-09-21T16:00:00Z", "2026-09-21T17:30:00Z");
+    expect(eventSpan(event, LA, "12h")).toBe("9:00am – 10:30am");
+    expect(eventSpan(event, LA, "24h")).toBe("09:00 – 10:30");
+  });
+
+  it("names the end day when it finishes on another day", () => {
+    const event = timed("Night shift", "2026-09-22T04:00:00Z", "2026-09-22T14:00:00Z");
+    expect(eventSpan(event, LA, "12h")).toBe("9:00pm – Tue 7:00am");
+  });
+
+  it("says how long an all-day event runs", () => {
+    expect(eventSpan(allDay("Holiday", "2026-09-21", "2026-09-22"), LA, "12h")).toBe("All day");
+    expect(eventSpan(allDay("Trip", "2026-09-26", "2026-09-29"), LA, "12h")).toBe("All day · 3 days");
   });
 });

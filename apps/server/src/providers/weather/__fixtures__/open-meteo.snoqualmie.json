@@ -16,7 +16,8 @@
     "precipitation": "inch",
     "weather_code": "wmo code",
     "wind_speed_10m": "mp/h",
-    "wind_direction_10m": "°"
+    "wind_direction_10m": "°",
+    "uv_index": ""
   },
   "current": {
     "time": "2026-09-21T12:15",
@@ -28,13 +29,18 @@
     "precipitation": 0,
     "weather_code": 3,
     "wind_speed_10m": 4.5,
-    "wind_direction_10m": 340
+    "wind_direction_10m": 340,
+    "uv_index": 0.2
   },
   "hourly_units": {
     "time": "iso8601",
     "temperature_2m": "°F",
     "precipitation_probability": "%",
-    "weather_code": "wmo code"
+    "weather_code": "wmo code",
+    "relative_humidity_2m": "%",
+    "wind_speed_10m": "mp/h",
+    "precipitation": "inch",
+    "uv_index": ""
   },
   "hourly": {
     "time": [
@@ -92,6 +98,62 @@
       0,
       0,
       2
+    ],
+    "relative_humidity_2m": [
+      76,
+      77,
+      77,
+      73,
+      79,
+      76,
+      80,
+      78,
+      80,
+      82,
+      81,
+      76
+    ],
+    "wind_speed_10m": [
+      3.7,
+      3.9,
+      1.5,
+      3.2,
+      4.7,
+      3,
+      3.6,
+      4.2,
+      3.8,
+      3.2,
+      2.1,
+      2.6
+    ],
+    "precipitation": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "uv_index": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0.1,
+      0.25,
+      0.55,
+      0.8
     ]
   },
   "daily_units": {
@@ -101,7 +163,11 @@
     "temperature_2m_min": "°F",
     "precipitation_probability_max": "%",
     "sunrise": "iso8601",
-    "sunset": "iso8601"
+    "sunset": "iso8601",
+    "precipitation_sum": "inch",
+    "wind_speed_10m_max": "mp/h",
+    "wind_direction_10m_dominant": "°",
+    "uv_index_max": ""
   },
   "daily": {
     "time": [
@@ -166,6 +232,42 @@
       "2026-09-25T18:58",
       "2026-09-26T18:56",
       "2026-09-27T18:54"
+    ],
+    "precipitation_sum": [
+      0,
+      0,
+      0.106,
+      0.921,
+      0,
+      0,
+      0.024
+    ],
+    "wind_speed_10m_max": [
+      5.6,
+      8.4,
+      6.4,
+      3.8,
+      5.8,
+      4.5,
+      5.5
+    ],
+    "wind_direction_10m_dominant": [
+      339,
+      304,
+      337,
+      240,
+      34,
+      109,
+      171
+    ],
+    "uv_index_max": [
+      3.85,
+      4.3,
+      3.85,
+      3.2,
+      4.15,
+      3.55,
+      3.2
     ]
   }
 }

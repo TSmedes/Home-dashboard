@@ -2,17 +2,21 @@ import { useState } from "react";
 import type { LightsSnapshot } from "@home-dash/shared";
 import type { WidgetProps } from "./types.js";
 
-interface Command {
+export interface LightCommand {
   on?: boolean;
   brightness?: number;
+  colourTemp?: number;
 }
 
-export function LightsWidget({ envelope }: WidgetProps<LightsSnapshot>) {
-  const lights = envelope?.data?.lights ?? [];
-  // Held locally so a tap registers instantly; the server's reply replaces it.
-  const [pending, setPending] = useState<Record<string, Command>>({});
+/**
+ * Commands to the bulbs, shared by the tile and its full-screen view. Each
+ * command is held locally so a tap registers instantly; the server's reply,
+ * which re-reads the bulb, replaces it.
+ */
+export function useLightCommands() {
+  const [pending, setPending] = useState<Record<string, LightCommand>>({});
 
-  const send = async (id: string, command: Command) => {
+  const send = async (id: string, command: LightCommand) => {
     setPending((prev) => ({ ...prev, [id]: { ...prev[id], ...command } }));
     try {
       await fetch(`/api/lights/${id}`, {
@@ -30,6 +34,13 @@ export function LightsWidget({ envelope }: WidgetProps<LightsSnapshot>) {
       });
     }
   };
+
+  return { pending, send };
+}
+
+export function LightsWidget({ envelope }: WidgetProps<LightsSnapshot>) {
+  const lights = envelope?.data?.lights ?? [];
+  const { pending, send } = useLightCommands();
 
   if (lights.length === 0) {
     return (
@@ -79,7 +90,7 @@ export function LightsWidget({ envelope }: WidgetProps<LightsSnapshot>) {
  * Sends one command when the finger lifts rather than on every pixel of the
  * drag, so sliding the brightness does not fire fifty requests at the bulb.
  */
-function Dimmer({
+export function Dimmer({
   value,
   disabled,
   onCommit,

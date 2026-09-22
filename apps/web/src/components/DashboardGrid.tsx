@@ -1,7 +1,9 @@
+import type { MouseEvent } from "react";
 import { GRID_COLUMNS, type DashboardConfig, type WidgetInstance } from "@home-dash/shared";
 import type { WidgetEnvelope } from "@home-dash/shared";
 import { widgetFor } from "../widgets/registry.js";
 import { WidgetErrorBoundary } from "./ErrorBoundary.js";
+import { OWN_CONTROLS, useExpand } from "./Expanded.js";
 import { layout } from "./layout.js";
 import { WidgetFrame } from "./WidgetFrame.js";
 
@@ -15,6 +17,26 @@ interface Props {
 
 export function DashboardGrid({ config, widgets, envelopes, availableSources }: Props) {
   const { rows, cells } = layout(widgets);
+  const { expand } = useExpand();
+
+  /** Whether this widget can grow to full screen: it has a detail view and data to show in it. */
+  const expandable = (instance: WidgetInstance) => {
+    const definition = widgetFor(instance.type);
+    return definition?.detail !== undefined && (!definition.dataKey || availableSources.includes(definition.dataKey));
+  };
+
+  const expandFrom = (instance: WidgetInstance, from: HTMLElement) => {
+    const cell = from.closest<HTMLElement>(".grid__cell");
+    if (cell) expand(instance.id, cell);
+  };
+
+  // A tap anywhere on the tile opens it, except on a control the tile already
+  // answers to. Safari sends no click after a swipe, so paging is unaffected.
+  const onCellClick = (instance: WidgetInstance) => (event: MouseEvent<HTMLElement>) => {
+    if (!expandable(instance)) return;
+    if ((event.target as Element).closest(OWN_CONTROLS)) return;
+    expandFrom(instance, event.currentTarget);
+  };
 
   const render = (instance: WidgetInstance) => {
     const definition = widgetFor(instance.type);
@@ -50,6 +72,7 @@ export function DashboardGrid({ config, widgets, envelopes, availableSources }: 
             envelope={envelope}
             timezone={config.location.timezone}
             clock={config.units.clock}
+            onExpand={expandable(instance) ? (from) => expandFrom(instance, from) : undefined}
           >
             <definition.component instance={instance} config={config} envelope={envelope as never} />
           </WidgetFrame>
@@ -68,14 +91,19 @@ export function DashboardGrid({ config, widgets, envelopes, availableSources }: 
     >
       {cells.map((cell) =>
         cell.kind === "widget" ? (
-          <div key={cell.key} className="grid__cell" style={{ gridColumn: cell.column, gridRow: cell.row }}>
+          <div
+            key={cell.key}
+            className="grid__cell"
+            style={{ gridColumn: cell.column, gridRow: cell.row }}
+            onClick={onCellClick(cell.widget)}
+          >
             {render(cell.widget)}
           </div>
         ) : (
           // A shared row spans the full width; its widgets split it evenly.
           <div key={cell.key} className="grid__band" style={{ gridColumn: "1 / -1", gridRow: cell.row }}>
             {cell.widgets.map((widget) => (
-              <div key={widget.id} className="grid__cell">
+              <div key={widget.id} className="grid__cell" onClick={onCellClick(widget)}>
                 {render(widget)}
               </div>
             ))}

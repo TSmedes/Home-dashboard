@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DashboardConfig, Profile, WidgetEnvelope } from "@home-dash/shared";
+import { widgetFor } from "../widgets/registry.js";
 import { DashboardGrid } from "./DashboardGrid.js";
+import { ExpandContext, ExpandedWidget } from "./Expanded.js";
 import { visiblePages } from "./pages.js";
 
 interface Props {
@@ -25,6 +27,10 @@ export function Pager({ config, profile, envelopes, availableSources }: Props) {
   const pages = useMemo(() => visiblePages(profile.widgets), [profile.widgets]);
   const track = useRef<HTMLDivElement>(null);
   const [current, setCurrent] = useState(0);
+  const [expanded, setExpanded] = useState<{ id: string; cell: HTMLElement } | null>(null);
+  const expand = useCallback((id: string, cell: HTMLElement) => setExpanded((prev) => prev ?? { id, cell }), []);
+  const collapse = useCallback(() => setExpanded(null), []);
+  const expandApi = useMemo(() => ({ expandedId: expanded?.id ?? null, expand }), [expanded, expand]);
 
   const goTo = useCallback((index: number, smooth = true) => {
     const el = track.current;
@@ -58,7 +64,8 @@ export function Pager({ config, profile, envelopes, availableSources }: Props) {
   // sit on page three all afternoon.
   const idleMs = profile.returnToFirstPage * 1000;
   useEffect(() => {
-    if (idleMs === 0 || current === 0) return;
+    // An open widget closes itself first; the countdown starts again after.
+    if (idleMs === 0 || current === 0 || expanded) return;
     let timer = window.setTimeout(() => goTo(0), idleMs);
     const reset = () => {
       window.clearTimeout(timer);
@@ -70,11 +77,11 @@ export function Pager({ config, profile, envelopes, availableSources }: Props) {
       window.clearTimeout(timer);
       for (const type of events) window.removeEventListener(type, reset);
     };
-  }, [idleMs, current, goTo]);
+  }, [idleMs, current, goTo, expanded]);
 
   // Arrow keys, for a desk browser without a touch screen.
   useEffect(() => {
-    if (pages.length < 2) return;
+    if (pages.length < 2 || expanded) return;
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, [contenteditable], .settings")) return;
@@ -83,13 +90,27 @@ export function Pager({ config, profile, envelopes, availableSources }: Props) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [current, pages.length, goTo]);
+  }, [current, pages.length, goTo, expanded]);
 
   const many = pages.length > 1;
 
+  // Looked up afresh on every render, so an open widget keeps getting live
+  // data, and closes if Settings removes it or switches it off.
+  const open = expanded && profile.widgets.find((w) => w.id === expanded.id && w.enabled);
+  const openDefinition = open ? widgetFor(open.type) : undefined;
+  useEffect(() => {
+    if (expanded && !openDefinition?.detail) setExpanded(null);
+  }, [expanded, openDefinition]);
+
   return (
-    <>
-      <div ref={track} className={many ? "pager" : "pager pager--single"} onScroll={many ? onScroll : undefined}>
+    <ExpandContext.Provider value={expandApi}>
+      <div
+        ref={track}
+        className={many ? "pager" : "pager pager--single"}
+        onScroll={many ? onScroll : undefined}
+        // Out of reach while a widget is open over it.
+        inert={expanded !== null}
+      >
         {pages.map((page, index) => (
           <div
             key={page.number}
@@ -122,6 +143,17 @@ export function Pager({ config, profile, envelopes, availableSources }: Props) {
           ))}
         </nav>
       )}
-    </>
+      {open && openDefinition?.detail && expanded && (
+        <ExpandedWidget
+          key={open.id}
+          instance={open}
+          definition={{ ...openDefinition, detail: openDefinition.detail }}
+          config={config}
+          envelope={openDefinition.dataKey ? (envelopes[openDefinition.dataKey] ?? null) : null}
+          source={expanded.cell}
+          onClosed={collapse}
+        />
+      )}
+    </ExpandContext.Provider>
   );
 }

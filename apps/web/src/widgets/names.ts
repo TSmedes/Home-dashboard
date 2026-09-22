@@ -1,0 +1,19 @@
+/** What each widget type is called in Settings and on its expanded view. */
+export const WIDGET_NAMES: Record<string, string> = {
+  clock: "Clock",
+  weather: "Weather",
+  calendar: "Calendar",
+  tasks: "Tasks",
+  lights: "Lights",
+  sunmoon: "Sun & moon",
+  bins: "Bin day",
+  countdowns: "Countdowns",
+  river: "River level",
+  commute: "Commute",
+  spotify: "Spotify",
+  cpu: "CPU & memory",
+  temps: "Temperatures",
+  disks: "Disks",
+  network: "Network",
+  services: "Services",
+};

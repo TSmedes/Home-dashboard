@@ -68,3 +68,28 @@ export function dayPhrase(key: string, today: string): string {
   const label = dayLabel(key, today);
   return label === "Today" || label === "Tomorrow" ? label.toLowerCase() : label;
 }
+
+/** How far `timezone` is ahead of UTC at `at`, in milliseconds. */
+function offsetAt(at: number, timezone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hourCycle: "h23",
+  }).formatToParts(new Date(at));
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+  const wall = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+  return wall - Math.floor(at / 1000) * 1000;
+}
+
+/** The instant a calendar date (YYYY-MM-DD) begins in `timezone`. */
+export function zonedMidnight(key: string, timezone: string): number {
+  const utc = Date.parse(`${key}T00:00:00Z`);
+  // Twice, in case the first guess lands on the other side of a clock change.
+  const first = utc - offsetAt(utc, timezone);
+  return utc - offsetAt(first, timezone);
+}

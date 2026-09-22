@@ -3,6 +3,7 @@ import type { TaskItem, TasksSnapshot } from "@home-dash/shared";
 import { useNow } from "../lib/useNow.js";
 import { assigneeLabel, dueLabel } from "./tasks.js";
 import type { WidgetProps } from "./types.js";
+import { useTaskActions } from "./useTaskActions.js";
 
 interface TasksOptions {
   /** A TickTick username. Shows only that person's tasks - a "my tasks" view. */
@@ -10,15 +11,6 @@ interface TasksOptions {
   /** Hide quick-add, for a screen that should only display. */
   readOnly?: boolean;
 }
-
-/**
- * How long a ticked task waits before it is really completed. A wall panel
- * gets brushed past; this is the window to take a stray tap back.
- */
-const UNDO_MS = 4000;
-
-const post = (url: string, body: unknown) =>
-  fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
 function Check() {
   return (
@@ -28,16 +20,79 @@ function Check() {
   );
 }
 
+/** One task: the tick box, its title, and when it is due and whose it is. */
+export function TaskRow({
+  task,
+  pending,
+  now,
+  timezone,
+  clock,
+  showAssignee,
+  showTags = false,
+  onFinish,
+  onUndo,
+}: {
+  task: TaskItem;
+  pending: boolean;
+  now: Date;
+  timezone: string;
+  clock: "12h" | "24h";
+  showAssignee: boolean;
+  showTags?: boolean;
+  onFinish: () => void;
+  onUndo: () => void;
+}) {
+  const due = dueLabel(task, now, timezone, clock);
+  const who = showAssignee ? assigneeLabel(task) : null;
+  const tags = showTags ? task.tags : [];
+
+  return (
+    <li className="task" data-finishing={pending} data-priority={task.priority === 5 ? "high" : undefined}>
+      <button
+        type="button"
+        className="task__check"
+        onClick={pending ? onUndo : onFinish}
+        aria-pressed={pending}
+        aria-label={pending ? `Undo completing ${task.title}` : `Mark ${task.title} done`}
+      >
+        <span className="task__box">{pending && <Check />}</span>
+      </button>
+
+      <div className="task__body">
+        <span className="task__title">{task.title}</span>
+        {pending ? (
+          <span className="task__meta">
+            <button type="button" className="task__undo" onClick={onUndo}>
+              Undo
+            </button>
+          </span>
+        ) : (
+          (due || who || tags.length > 0) && (
+            <span className="task__meta">
+              {due && (
+                <span className="task__due" data-tone={due.tone}>
+                  {due.text}
+                </span>
+              )}
+              {who && <span className="task__who">{who}</span>}
+              {tags.map((tag) => (
+                <span key={tag} className="task__tag">
+                  #{tag}
+                </span>
+              ))}
+            </span>
+          )
+        )}
+      </div>
+    </li>
+  );
+}
+
 export function TasksWidget({ instance, config, envelope }: WidgetProps<TasksSnapshot>) {
   const now = useNow();
-  /** Ticked, waiting out the undo window: task id -> timer. */
-  const [finishing, setFinishing] = useState<Record<string, number>>({});
-  /** Completed on the server, hidden until the next update drops them. */
-  const [done, setDone] = useState<Set<string>>(() => new Set());
+  const actions = useTaskActions();
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const data = envelope?.data;
   if (!data) return null;
@@ -45,52 +100,16 @@ export function TasksWidget({ instance, config, envelope }: WidgetProps<TasksSna
   const options = instance.options as TasksOptions;
   const { timezone } = config.location;
 
-  const forget = (id: string) =>
-    setFinishing(({ [id]: _dropped, ...rest }) => rest);
-
-  const finish = (task: TaskItem) => {
-    setError(null);
-    const timer = window.setTimeout(async () => {
-      try {
-        const response = await post(`/api/tasks/${encodeURIComponent(task.id)}/complete`, {
-          projectId: task.projectId,
-        });
-        if (!response.ok) throw new Error(String(response.status));
-        setDone((prev) => new Set(prev).add(task.id));
-      } catch {
-        setError(`Couldn't mark “${task.title}” done. Try again.`);
-      } finally {
-        forget(task.id);
-      }
-    }, UNDO_MS);
-    setFinishing((prev) => ({ ...prev, [task.id]: timer }));
-  };
-
-  const undo = (id: string) => {
-    window.clearTimeout(finishing[id]);
-    forget(id);
-  };
-
   const add = async (event: FormEvent) => {
     event.preventDefault();
-    const title = draft.trim();
-    if (!title || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const response = await post("/api/tasks", { title });
-      if (!response.ok) throw new Error(String(response.status));
+    if (await actions.add(draft.trim())) {
       setDraft("");
       setAdding(false);
-    } catch {
-      setError("Couldn't add that task. Try again.");
-    } finally {
-      setBusy(false);
     }
   };
 
   const visible = data.tasks.filter(
-    (task) => !done.has(task.id) && (!options.assignee || task.assigneeId === options.assignee),
+    (task) => !actions.done.has(task.id) && (!options.assignee || task.assigneeId === options.assignee),
   );
 
   return (
@@ -99,59 +118,26 @@ export function TasksWidget({ instance, config, envelope }: WidgetProps<TasksSna
         <p className="tasks__empty">{options.assignee ? "Nothing assigned to you." : "All clear."}</p>
       ) : (
         <ul className="tasks__list">
-          {visible.map((task) => {
-            const pending = task.id in finishing;
-            const due = dueLabel(task, now, timezone, config.units.clock);
-            // In a "my tasks" view every task is yours, so the name is noise.
-            const who = options.assignee ? null : assigneeLabel(task);
-
-            return (
-              <li
-                className="task"
-                key={task.id}
-                data-finishing={pending}
-                data-priority={task.priority === 5 ? "high" : undefined}
-              >
-                <button
-                  type="button"
-                  className="task__check"
-                  onClick={() => (pending ? undo(task.id) : finish(task))}
-                  aria-pressed={pending}
-                  aria-label={pending ? `Undo completing ${task.title}` : `Mark ${task.title} done`}
-                >
-                  <span className="task__box">{pending && <Check />}</span>
-                </button>
-
-                <div className="task__body">
-                  <span className="task__title">{task.title}</span>
-                  {pending ? (
-                    <span className="task__meta">
-                      <button type="button" className="task__undo" onClick={() => undo(task.id)}>
-                        Undo
-                      </button>
-                    </span>
-                  ) : (
-                    (due || who) && (
-                      <span className="task__meta">
-                        {due && (
-                          <span className="task__due" data-tone={due.tone}>
-                            {due.text}
-                          </span>
-                        )}
-                        {who && <span className="task__who">{who}</span>}
-                      </span>
-                    )
-                  )}
-                </div>
-              </li>
-            );
-          })}
+          {visible.map((task) => (
+            <TaskRow
+              key={task.id}
+              task={task}
+              pending={task.id in actions.finishing}
+              now={now}
+              timezone={timezone}
+              clock={config.units.clock}
+              // In a "my tasks" view every task is yours, so the name is noise.
+              showAssignee={!options.assignee}
+              onFinish={() => actions.finish(task)}
+              onUndo={() => actions.undo(task.id)}
+            />
+          ))}
         </ul>
       )}
 
-      {error && (
+      {actions.error && (
         <p className="tasks__error" role="alert">
-          {error}
+          {actions.error}
         </p>
       )}
 
@@ -168,7 +154,7 @@ export function TasksWidget({ instance, config, envelope }: WidgetProps<TasksSna
               autoFocus
               maxLength={500}
             />
-            <button type="submit" className="tasks__submit" disabled={busy || !draft.trim()}>
+            <button type="submit" className="tasks__submit" disabled={actions.busy || !draft.trim()}>
               Add
             </button>
             <button

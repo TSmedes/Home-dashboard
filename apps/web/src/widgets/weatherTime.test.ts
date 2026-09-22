@@ -11,6 +11,10 @@ const hours = Array.from({ length: 24 }, (_, i) => ({
   temperature: 50 + i,
   precipitationProbability: i,
   code: 0,
+  precipitation: 0,
+  humidity: 70,
+  windSpeed: 3,
+  uvIndex: 0,
 }));
 
 describe("localHourKey", () => {

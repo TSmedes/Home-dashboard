@@ -125,3 +125,58 @@ export function moonPath(phase: number, cx: number, cy: number, r: number): stri
     "Z",
   ].join(" ");
 }
+
+export interface SunTimes {
+  dawn: Date | null;
+  sunrise: Date | null;
+  solarNoon: Date | null;
+  /** When the evening golden hour begins. */
+  goldenHour: Date | null;
+  sunset: Date | null;
+  dusk: Date | null;
+}
+
+/** The day's sun from first light to last, for the expanded view. */
+export function sunDetail(now: Date, lat: number, lon: number, timezone: string): SunTimes {
+  const t = SunCalc.getTimes(new Date(`${dateKey(now, timezone)}T12:00:00Z`), lat, lon);
+  return {
+    dawn: valid(t.dawn),
+    sunrise: valid(t.sunrise),
+    solarNoon: valid(t.solarNoon),
+    goldenHour: valid(t.goldenHour),
+    sunset: valid(t.sunset),
+    dusk: valid(t.dusk),
+  };
+}
+
+const STEP = 5 * 60_000;
+/** The altitude SunCalc treats as the moon's limb touching the horizon. */
+const MOON_HORIZON = 0.133 * (Math.PI / 180);
+
+/**
+ * Moonrise and moonset in the 24 hours from `dayStart`. SunCalc's own
+ * version starts the day at the machine's midnight, which is only right when
+ * the iPad is set to the dashboard's timezone; this starts wherever it is
+ * told to. Sampled every five minutes, then interpolated.
+ */
+export function moonRiseSet(dayStart: number, lat: number, lon: number): { rise: Date | null; set: Date | null } {
+  const altitude = (t: number) => SunCalc.getMoonPosition(new Date(t), lat, lon).altitude - MOON_HORIZON;
+  let rise: Date | null = null;
+  let set: Date | null = null;
+  let previous = altitude(dayStart);
+  for (let t = dayStart + STEP; t <= dayStart + 24 * HOUR; t += STEP) {
+    const current = altitude(t);
+    const crossing = new Date(t - STEP + (previous / (previous - current)) * STEP);
+    if (previous < 0 && current >= 0 && !rise) rise = crossing;
+    if (previous >= 0 && current < 0 && !set) set = crossing;
+    previous = current;
+  }
+  return { rise, set };
+}
+
+/** The next full moon and the next new moon, soonest first. */
+export function nextPhases(from: Date): [MoonNow["next"], MoonNow["next"]] {
+  const first = nextFullOrNew(from);
+  // A day on, so the search does not find the same moment again.
+  return [first, nextFullOrNew(new Date(first.at.getTime() + 24 * HOUR))];
+}

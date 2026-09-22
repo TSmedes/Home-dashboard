@@ -1,4 +1,5 @@
 import type { FloodCategory, RiverPoint, RiverGauge } from "@home-dash/shared";
+import { addDays, dateKey, zonedMidnight } from "../lib/zoned.js";
 
 export const CATEGORY_LABEL: Record<FloodCategory, string> = {
   none: "Normal",
@@ -51,6 +52,11 @@ export interface Sparkline {
   forecast: string;
   /** A threshold line, only when the river is near enough for it to fit. */
   threshold: { y: number; label: string } | null;
+  /** The time axis, in epoch milliseconds, from the left edge to the right. */
+  t0: number;
+  t1: number;
+  /** The value at the top edge; the bottom is zero. */
+  top: number;
 }
 
 /** How far ahead the chart looks; NOAA forecasts run to ten days, which would dwarf two days of readings. */
@@ -90,5 +96,20 @@ export function sparkline(snapshot: RiverGauge, width: number, height: number): 
     observed: line(snapshot.observed),
     forecast,
     threshold: showThreshold ? { y: y(first), label: formatLevel(first, snapshot.unit) } : null,
+    t0,
+    t1,
+    top,
   };
+}
+
+/** Local midnights strictly inside a time span, each named for the day it begins. */
+export function dayTicks(t0: number, t1: number, timezone: string): { at: number; label: string }[] {
+  const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "UTC" });
+  const ticks: { at: number; label: string }[] = [];
+  for (let key = addDays(dateKey(new Date(t0), timezone), 1); ; key = addDays(key, 1)) {
+    const at = zonedMidnight(key, timezone);
+    if (at >= t1) break;
+    if (at > t0) ticks.push({ at, label: weekday.format(new Date(`${key}T12:00:00Z`)) });
+  }
+  return ticks;
 }

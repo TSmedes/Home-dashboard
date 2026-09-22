@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RiverGauge } from "@home-dash/shared";
-import { formatLevel, nextThreshold, shortName, sparkline, trendOf } from "./river.js";
+import { dayTicks, formatLevel, nextThreshold, shortName, sparkline, trendOf } from "./river.js";
 
 const base: RiverGauge = {
   gauge: "SQUW1",
@@ -60,5 +60,29 @@ describe("river", () => {
     expect(line.threshold!.label).toBe("15,000 cfs");
     expect(line.threshold!.y).toBeGreaterThan(0);
     expect(line.forecast.startsWith("M 50.0")).toBe(true); // joined to the last observation
+  });
+});
+
+describe("dayTicks", () => {
+  it("marks each local midnight inside the span, named for the day it starts", () => {
+    // 21 Sep 12:00 to 23 Sep 18:00 in Los Angeles (UTC-7).
+    const t0 = Date.parse("2026-09-21T19:00:00Z");
+    const t1 = Date.parse("2026-09-24T01:00:00Z");
+    expect(dayTicks(t0, t1, "America/Los_Angeles")).toEqual([
+      { at: Date.parse("2026-09-22T07:00:00Z"), label: "Tue" },
+      { at: Date.parse("2026-09-23T07:00:00Z"), label: "Wed" },
+    ]);
+  });
+
+  it("is empty for a span inside one day", () => {
+    expect(dayTicks(Date.parse("2026-09-21T15:00:00Z"), Date.parse("2026-09-21T20:00:00Z"), "UTC")).toEqual([]);
+  });
+});
+
+describe("sparkline span", () => {
+  it("reports the time axis it drew, so labels can line up with it", () => {
+    const line = sparkline(base, 100, 20)!;
+    expect(line.t0).toBe(Date.parse("2026-09-21T00:00:00Z"));
+    expect(line.t1).toBe(Date.parse("2026-09-23T00:00:00Z"));
   });
 });

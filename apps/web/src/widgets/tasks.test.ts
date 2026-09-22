@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TaskItem } from "@home-dash/shared";
-import { assigneeLabel, dueLabel } from "./tasks.js";
+import { assigneeLabel, dueLabel, groupTasks } from "./tasks.js";
 
 const LA = "America/Los_Angeles";
 // Monday 21 September 2026, noon in Los Angeles.
@@ -76,5 +76,31 @@ describe("assigneeLabel", () => {
 
   it("returns nothing for an unassigned task", () => {
     expect(assigneeLabel(task({}))).toBeNull();
+  });
+});
+
+describe("groupTasks", () => {
+  it("splits tasks into overdue, today, upcoming and undated, dropping empty groups", () => {
+    const groups = groupTasks(
+      [
+        task({ id: "later", dueDate: "2026-09-25", dueAllDay: true }),
+        task({ id: "none" }),
+        task({ id: "late", dueDate: "2026-09-19", dueAllDay: true }),
+        task({ id: "soon", dueDate: "2026-09-22", dueAllDay: true }),
+        task({ id: "now", dueDate: "2026-09-21T22:00:00Z" }),
+      ],
+      NOW,
+      LA,
+    );
+    expect(groups.map((g) => [g.label, g.tasks.map((t) => t.id)])).toEqual([
+      ["Overdue", ["late"]],
+      ["Today", ["now"]],
+      ["Upcoming", ["soon", "later"]],
+      ["No date", ["none"]],
+    ]);
+  });
+
+  it("returns nothing for an empty list", () => {
+    expect(groupTasks([], NOW, LA)).toEqual([]);
   });
 });

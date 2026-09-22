@@ -28,6 +28,8 @@ export interface WeatherNow {
   isDay: boolean;
   /** WMO weather interpretation code. */
   code: number;
+  /** 0-11+, to one decimal. */
+  uvIndex: number;
 }
 
 export interface WeatherHour {
@@ -35,6 +37,11 @@ export interface WeatherHour {
   temperature: number;
   precipitationProbability: number;
   code: number;
+  /** Rain in the hour, in `units.precipitation`. */
+  precipitation: number;
+  humidity: number;
+  windSpeed: number;
+  uvIndex: number;
 }
 
 export interface WeatherDay {
@@ -45,13 +52,19 @@ export interface WeatherDay {
   code: number;
   sunrise: string;
   sunset: string;
+  /** Total for the day, in `units.precipitation`. */
+  precipitationSum: number;
+  windSpeedMax: number;
+  /** Where the wind mostly comes from, in degrees. */
+  windDirection: number;
+  uvIndexMax: number;
 }
 
 export interface WeatherSnapshot {
   now: WeatherNow;
   hourly: WeatherHour[];
   daily: WeatherDay[];
-  units: { temperature: string; wind: string };
+  units: { temperature: string; wind: string; precipitation: string };
 }
 
 export interface CalendarEvent {

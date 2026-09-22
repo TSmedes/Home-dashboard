@@ -3,30 +3,12 @@ import type { ConfigChange, DashboardConfig, Place } from "@home-dash/shared";
 import { pagesOf } from "../components/pages.js";
 import { useDashboard } from "../lib/dashboard.js";
 import { useNow } from "../lib/useNow.js";
+import { WIDGET_NAMES } from "../widgets/names.js";
 import { CommitInput, Segmented, Switch } from "./controls.js";
 import { ago, overrideSummary, profileLabel, scheduleChanges } from "./model.js";
 
 /** Settings closes itself after this long untouched, so the wall never stays on it. */
 const IDLE_CLOSE_MS = 120_000;
-
-const WIDGET_NAMES: Record<string, string> = {
-  clock: "Clock",
-  weather: "Weather",
-  calendar: "Calendar",
-  tasks: "Tasks",
-  lights: "Lights",
-  sunmoon: "Sun & moon",
-  bins: "Bin day",
-  countdowns: "Countdowns",
-  river: "River level",
-  commute: "Commute",
-  spotify: "Spotify",
-  cpu: "CPU & memory",
-  temps: "Temperatures",
-  disks: "Disks",
-  network: "Network",
-  services: "Services",
-};
 
 const SOURCE_NAMES: Record<string, string> = {
   weather: "Weather",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { formatChange, formatDuration, moonNow, moonPath, phaseName, sunToday } from "./sunMoon.js";
+import SunCalc from "suncalc";
+import { formatChange, formatDuration, moonNow, moonPath, moonRiseSet, nextPhases, phaseName, sunDetail, sunToday } from "./sunMoon.js";
 
 const tz = "America/Los_Angeles";
 const snoqualmie = { lat: 47.5287, lon: -121.8254 };
@@ -75,5 +76,40 @@ describe("formatting", () => {
     expect(formatChange(161)).toBe("+2m 41s");
     expect(formatChange(-185)).toBe("−3m 05s");
     expect(formatChange(12)).toBe("+12s");
+  });
+});
+
+describe("sunDetail", () => {
+  const sun = sunDetail(now, snoqualmie.lat, snoqualmie.lon, tz);
+
+  it("puts twilight either side of sunrise and sunset, and noon between them", () => {
+    expect(sun.dawn!.getTime()).toBeLessThan(sun.sunrise!.getTime());
+    expect(sun.dusk!.getTime()).toBeGreaterThan(sun.sunset!.getTime());
+    expect(sun.solarNoon!.getTime()).toBeGreaterThan(sun.sunrise!.getTime());
+    expect(sun.solarNoon!.getTime()).toBeLessThan(sun.sunset!.getTime());
+    expect(sun.goldenHour!.getTime()).toBeLessThan(sun.sunset!.getTime());
+  });
+});
+
+describe("moonRiseSet", () => {
+  it("agrees with SunCalc to within the sampling step", () => {
+    const day = Date.parse("2026-09-21T00:00:00Z");
+    const ours = moonRiseSet(day, snoqualmie.lat, snoqualmie.lon);
+    const theirs = SunCalc.getMoonTimes(new Date(day), snoqualmie.lat, snoqualmie.lon, true);
+    for (const key of ["rise", "set"] as const) {
+      if (theirs[key]) expect(Math.abs(ours[key]!.getTime() - theirs[key]!.getTime())).toBeLessThan(6 * 60_000);
+      else expect(ours[key]).toBeNull();
+    }
+  });
+});
+
+describe("nextPhases", () => {
+  it("gives the next full and new moons, soonest first, about a fortnight apart", () => {
+    const [first, second] = nextPhases(now);
+    expect(first.kind).not.toBe(second.kind);
+    expect(first.at.getTime()).toBeGreaterThan(now.getTime());
+    const gap = (second.at.getTime() - first.at.getTime()) / 86_400_000;
+    expect(gap).toBeGreaterThan(13);
+    expect(gap).toBeLessThan(16.5);
   });
 });

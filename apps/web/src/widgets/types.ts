@@ -20,4 +20,11 @@ export interface WidgetDefinition {
   chrome?: boolean;
   /** What to do when its source is not set up. Defaults to running the setup wizard. */
   setupHint?: string;
+  /**
+   * The full-screen view a tap on the tile grows into, with more detail and
+   * more controls. Omit it for a widget that says everything on its tile.
+   */
+  detail?: ComponentType<WidgetProps<never>>;
+  /** What the full-screen view is called, when it shows more than the tile's own title says. */
+  detailTitle?: string;
 }

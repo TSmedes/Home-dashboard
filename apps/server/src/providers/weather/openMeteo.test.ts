@@ -20,7 +20,7 @@ describe("buildUrl", () => {
     expect(url.searchParams.get("temperature_unit")).toBe("fahrenheit");
     expect(url.searchParams.get("wind_speed_unit")).toBe("mph");
     expect(url.searchParams.get("timezone")).toBe("America/Los_Angeles");
-    expect(url.searchParams.get("forecast_days")).toBe("7");
+    expect(url.searchParams.get("forecast_days")).toBe("10");
   });
 
   it("asks for inches with Fahrenheit and millimetres with Celsius", () => {
@@ -46,6 +46,7 @@ describe("mapResponse", () => {
       precipitation: 0,
       isDay: true,
       code: 3,
+      uvIndex: 0.2,
     });
   });
 
@@ -56,6 +57,10 @@ describe("mapResponse", () => {
       time: raw.hourly.time[0],
       temperature: Math.round(raw.hourly.temperature_2m[0]!),
       code: raw.hourly.weather_code[0],
+      precipitation: 0,
+      humidity: 76,
+      windSpeed: 4,
+      uvIndex: 0,
     });
   });
 
@@ -66,8 +71,22 @@ describe("mapResponse", () => {
     expect(snapshot.daily[0]!.min).toBeLessThanOrEqual(snapshot.daily[0]!.max);
   });
 
+  it("carries rain totals, wind and UV for the detailed forecast", () => {
+    expect(mapResponse(raw, units).daily[3]).toMatchObject({
+      precipitationSum: 0.921,
+      windSpeedMax: 4,
+      windDirection: 240,
+      uvIndexMax: 3.2,
+    });
+  });
+
+  it("reads zero for a field an older response does not have", () => {
+    const { uv_index_max: _dropped, ...daily } = raw.daily;
+    expect(mapResponse({ ...raw, daily }, units).daily[0]!.uvIndexMax).toBe(0);
+  });
+
   it("labels units for the display layer", () => {
-    expect(mapResponse(raw, units).units).toEqual({ temperature: "°F", wind: "mph" });
+    expect(mapResponse(raw, units).units).toEqual({ temperature: "°F", wind: "mph", precipitation: "in" });
     expect(mapResponse(raw, { temperature: "celsius", wind: "kmh", clock: "24h" }).units.temperature).toBe("°C");
   });
 

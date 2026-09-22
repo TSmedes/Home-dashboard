@@ -1,5 +1,5 @@
 import type { CalendarEvent } from "@home-dash/shared";
-import { addDays, clockTime, dateKey, noonOf } from "../lib/zoned.js";
+import { addDays, clockTime, dateKey, daysBetween, noonOf } from "../lib/zoned.js";
 
 export type When =
   | { kind: "allDay" }
@@ -96,4 +96,24 @@ export function buildAgenda(
         ),
     }))
     .filter((day) => day.items.length > 0);
+}
+
+/**
+ * The whole of an event's time, for the expanded calendar: "9:00am – 10:30am",
+ * "9:00pm – Tue 7:00am" when it runs past midnight, "All day · 3 days".
+ */
+export function eventSpan(event: CalendarEvent, timezone: string, clock: "12h" | "24h"): string {
+  if (event.allDay) {
+    const days = daysBetween(event.start, event.end);
+    return days > 1 ? `All day · ${days} days` : "All day";
+  }
+  const start = new Date(event.start);
+  const end = new Date(event.end);
+  const at = (date: Date) => {
+    const { time, meridiem } = clockTime(date, timezone, clock);
+    return `${time}${meridiem}`;
+  };
+  const sameDay = dateKey(start, timezone) === dateKey(end, timezone);
+  const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: timezone }).format(end);
+  return `${at(start)} – ${sameDay ? "" : `${weekday} `}${at(end)}`;
 }
