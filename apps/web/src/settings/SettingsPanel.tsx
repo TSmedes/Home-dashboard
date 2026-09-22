@@ -21,6 +21,11 @@ const WIDGET_NAMES: Record<string, string> = {
   river: "River level",
   commute: "Commute",
   spotify: "Spotify",
+  cpu: "CPU & memory",
+  temps: "Temperatures",
+  disks: "Disks",
+  network: "Network",
+  services: "Services",
 };
 
 const SOURCE_NAMES: Record<string, string> = {
@@ -32,6 +37,8 @@ const SOURCE_NAMES: Record<string, string> = {
   countdowns: "Countdowns",
   commute: "TomTom",
   spotify: "Spotify",
+  system: "Server stats",
+  services: "Services",
 };
 
 type Notice = { text: string; tone: "ok" | "error" } | null;

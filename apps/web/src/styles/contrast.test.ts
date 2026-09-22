@@ -39,6 +39,8 @@ const tints = [
   "tint-countdowns",
   "tint-commute",
   "tint-spotify",
+  "tint-system",
+  "tint-services",
 ];
 
 const themes = {
@@ -86,6 +88,13 @@ describe.each(Object.entries(themes))("%s palette", (_name, theme) => {
     expect(contrast(theme.ink!, theme[tint]!)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(theme["ink-2"]!, theme[tint]!)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(theme["ink-3"]!, theme[tint]!)).toBeGreaterThanOrEqual(3);
+  });
+
+  // Service and threshold states are small text and dots on the homelab tiles.
+  it.each(["good", "caution", "warn"])("the %s status is legible on the homelab tiles", (status) => {
+    for (const tint of ["tint-system", "tint-services"]) {
+      expect(contrast(theme[status]!, theme[tint]!), tint).toBeGreaterThanOrEqual(4.5);
+    }
   });
 
   it("an event happening now is legible", () => {

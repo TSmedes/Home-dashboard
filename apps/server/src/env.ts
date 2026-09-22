@@ -39,6 +39,18 @@ const EnvSchema = z.object({
    */
   SPOTIFY_CLIENT_ID: z.string().optional(),
 
+  /**
+   * Where the host's filesystem, /proc and /sys are, for the monitoring
+   * widgets. Left alone when running directly on the host; in Docker they
+   * point at the read-only mount of the host (see docker-compose.yml).
+   */
+  HOST_ROOT: z.string().default(""),
+  HOST_PROC: z.string().default("/proc"),
+  HOST_SYS: z.string().default("/sys"),
+
+  /** The Docker Engine socket the services widget lists containers from. */
+  DOCKER_SOCKET: z.string().default("/var/run/docker.sock"),
+
   KASA_USERNAME: z.string().optional(),
   KASA_PASSWORD: z.string().optional(),
 });

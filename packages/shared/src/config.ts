@@ -180,6 +180,55 @@ export const CommuteSchema = z.object({
     .refine((d) => new Set(d.map((x) => x.id)).size === d.length, { message: "duplicate destination id" }),
 });
 
+/** A filesystem to watch, by its mount point on the host, e.g. /mnt/media. */
+export const SystemDiskSchema = z.object({
+  path: z.string().regex(/^\//, "must be an absolute mount point, e.g. /mnt/media"),
+  name: z.string().min(1),
+});
+
+/**
+ * The machine the dashboard runs on. In Docker, the host is mounted read-only
+ * and HOST_ROOT / HOST_PROC / HOST_SYS in .env point at it, so these paths are
+ * always written as the host sees them.
+ */
+export const SystemSchema = z.object({
+  /** Shown instead of the host's own name. */
+  name: z.string().min(1).optional(),
+  disks: z.array(SystemDiskSchema).min(1).max(8).default([{ path: "/", name: "System" }]),
+  /** Network interface to show, e.g. eth0. Defaults to the one carrying the default route. */
+  interface: z.string().min(1).optional(),
+  /** Temperatures, in °C, at which a sensor reads as warm and then hot. */
+  tempWarn: z.number().min(20).max(150).default(75),
+  tempCrit: z.number().min(20).max(150).default(90),
+});
+
+/** A URL checked for an answer, e.g. a web UI on the homelab. */
+export const ServiceCheckSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  url: z.string().url(),
+  /** The status that counts as up. Defaults to any 2xx or 3xx. */
+  expectStatus: z.number().int().min(100).max(599).optional(),
+});
+
+export const ServicesSchema = z.object({
+  docker: z
+    .object({
+      /** List the host's containers. Needs the Docker socket mounted; see README. */
+      enabled: z.boolean().default(true),
+      /** Only these container names. Empty means all of them. */
+      include: z.array(z.string().min(1)).default([]),
+      /** Never these container names. */
+      exclude: z.array(z.string().min(1)).default([]),
+    })
+    .default({}),
+  checks: z
+    .array(ServiceCheckSchema)
+    .max(20)
+    .default([])
+    .refine((c) => new Set(c.map((x) => x.id)).size === c.length, { message: "duplicate check id" }),
+});
+
 export const ServerSchema = z.object({
   port: z.number().int().min(1).max(65535).default(8080),
 });
@@ -195,6 +244,8 @@ export const RefreshSchema = z.object({
   /** TomTom's free tier allows 2,500 requests a day across every destination. */
   commute: z.number().int().min(120).default(600),
   spotify: z.number().int().min(3).default(10),
+  system: z.number().int().min(5).default(10),
+  services: z.number().int().min(10).default(30),
 });
 
 export const DashboardConfigSchema = z.object({
@@ -209,6 +260,8 @@ export const DashboardConfigSchema = z.object({
   countdowns: CountdownsSchema.default({}),
   river: RiverSchema.default({}),
   commute: CommuteSchema.default({}),
+  system: SystemSchema.default({}),
+  services: ServicesSchema.default({}),
   profiles: z
     .record(z.string(), ProfileSchema)
     .refine((p) => Object.keys(p).length > 0, { message: "at least one profile is required" }),
@@ -223,5 +276,7 @@ export type LightConfig = z.infer<typeof LightSchema>;
 export type BinConfig = z.infer<typeof BinSchema>;
 export type CountdownConfig = z.infer<typeof CountdownSchema>;
 export type CommuteDestination = z.infer<typeof CommuteDestinationSchema>;
+export type SystemDiskConfig = z.infer<typeof SystemDiskSchema>;
+export type ServiceCheck = z.infer<typeof ServiceCheckSchema>;
 export type DashboardConfig = z.infer<typeof DashboardConfigSchema>;
 export type ProfileName = string;

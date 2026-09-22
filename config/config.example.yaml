@@ -34,6 +34,8 @@ refresh:
   countdowns: 3600
   commute: 600     # TomTom's free tier allows 2,500 requests a day in total
   spotify: 10
+  system: 10       # CPU, memory, temperatures, disks, network
+  services: 30     # Docker containers and URL checks
 
 # Which calendars appear is set by the secret iCal addresses in .env
 # (CALENDAR_ICAL_URLS), not here - each address is a credential.
@@ -96,6 +98,33 @@ commute:
   destinations: []
   # destinations:
   #   - { id: office, name: "Office", lat: 47.6101, lon: -122.2015 }
+
+# The machine the dashboard runs on (Linux only). In Docker, docker-compose.yml
+# mounts the host read-only so these are the host's numbers, not the
+# container's - see "Homelab monitoring" in the README. Disk paths are mount
+# points as the host sees them. `interface` defaults to the one with the
+# default route; `name` defaults to the host's own name.
+system:
+  disks:
+    - { path: /, name: "System" }
+    # - { path: /mnt/media, name: "Media" }
+  tempWarn: 75 # °C
+  tempCrit: 90
+  # interface: eth0
+  # name: "homelab"
+
+# Service status. Docker containers are listed from the Docker socket (mounted
+# in docker-compose.yml); include/exclude pick by container name. Checks are
+# URLs that should answer - any 2xx/3xx is up unless expectStatus is given.
+services:
+  docker:
+    enabled: true
+    include: []
+    exclude: []
+  checks: []
+  # checks:
+  #   - { id: jellyfin, name: "Jellyfin", url: "http://10.0.0.78:8096/health" }
+  #   - { id: router, name: "Router", url: "http://10.0.0.1" }
 
 # ---------------------------------------------------------------------------
 # Profiles. Each is an independent dashboard - its own widgets, layout and
@@ -184,6 +213,39 @@ profiles:
         title: "Now playing"
         page: 2
         grid: { col: 9, row: 4, colSpan: 4, rowSpan: 3 }
+
+      # --- Page 3: the homelab ----------------------------------------------
+      # All four stats widgets share one reading of the host; see system: above.
+      - id: cpu
+        type: cpu
+        title: "CPU & memory"
+        page: 3
+        grid: { col: 1, row: 1, colSpan: 4, rowSpan: 3 }
+
+      - id: temps
+        type: temps
+        title: "Temperatures"
+        page: 3
+        grid: { col: 5, row: 1, colSpan: 4, rowSpan: 3 }
+
+      - id: network
+        type: network
+        title: "Network"
+        page: 3
+        grid: { col: 9, row: 1, colSpan: 4, rowSpan: 3 }
+
+      - id: disks
+        type: disks
+        title: "Disks"
+        page: 3
+        grid: { col: 1, row: 4, colSpan: 5, rowSpan: 3 }
+
+      # Problems are listed first, so the top of the tile is what needs a look.
+      - id: services
+        type: services
+        title: "Services"
+        page: 3
+        grid: { col: 6, row: 4, colSpan: 7, rowSpan: 3 }
 
   # The night dashboard: a big clock you can read from across a dark room.
   night:

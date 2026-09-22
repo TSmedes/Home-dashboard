@@ -74,6 +74,13 @@
   --tint-countdowns: #f7dcea;
   --tint-commute: #dfe3ea;
   --tint-spotify: #dcf1d2;
+  --tint-system: #e2e6f3;
+  --tint-services: #d9efe8;
+
+  /* Status for the homelab page: up, up but unwell. Down is --warn. Always
+     shown alongside a word, never as colour alone. */
+  --good: #256b3e;
+  --caution: #8f5600;
 
   /* An event happening now: the strongest shape on its tile. */
   --now-fill: #1d1b26;
@@ -109,6 +116,11 @@
   --tint-countdowns: #2a1823;
   --tint-commute: #1b1e25;
   --tint-spotify: #15261a;
+  --tint-system: #181c27;
+  --tint-services: #122420;
+
+  --good: #6fae84;
+  --caution: #c99a4e;
 
   --now-fill: #38334c;
   --now-ink: #dedae8;

@@ -217,6 +217,92 @@ export interface SpotifySnapshot {
   device: string | null;
 }
 
+/** The machine the dashboard runs on, read from /proc and /sys. */
+export interface SystemSnapshot {
+  hostname: string;
+  uptimeSeconds: number;
+  cpu: {
+    /** Percent busy across every core since the previous sample, 0-100. */
+    usage: number;
+    cores: number;
+    /** 1, 5 and 15 minute load averages. */
+    load: [number, number, number];
+    /** Recent `usage` samples, oldest first. */
+    history: number[];
+  };
+  /** Bytes. `used` is what applications hold: total less available. */
+  memory: {
+    total: number;
+    used: number;
+    available: number;
+    swapTotal: number;
+    swapUsed: number;
+    /** Recent used percentages, oldest first. */
+    history: number[];
+  };
+  /** One per sensor, hottest first. */
+  temps: SystemTemp[];
+  disks: SystemDisk[];
+  /** Null when no interface could be found. */
+  network: SystemNetwork | null;
+  /** ISO instant the sample was taken. */
+  sampledAt: string;
+}
+
+export interface SystemTemp {
+  label: string;
+  celsius: number;
+}
+
+export interface SystemDisk {
+  path: string;
+  name: string;
+  /** Bytes. Null when the mount could not be read. */
+  total: number | null;
+  used: number | null;
+  free: number | null;
+}
+
+export interface SystemNetwork {
+  iface: string;
+  /** Bytes per second since the previous sample. */
+  rxBps: number;
+  txBps: number;
+  rxHistory: number[];
+  txHistory: number[];
+}
+
+export type ContainerHealth = "healthy" | "unhealthy" | "starting" | null;
+
+export interface ContainerStatus {
+  name: string;
+  image: string;
+  /** Docker's state: running, exited, restarting, paused, created, dead. */
+  state: string;
+  /** Docker's own phrase, e.g. "Up 3 days (healthy)". */
+  status: string;
+  health: ContainerHealth;
+}
+
+export interface ServiceCheckResult {
+  id: string;
+  name: string;
+  url: string;
+  ok: boolean;
+  /** HTTP status, when there was an answer. */
+  status: number | null;
+  latencyMs: number | null;
+  error: string | null;
+}
+
+export interface ServicesSnapshot {
+  /** Null when Docker is switched off or could not be reached. */
+  containers: ContainerStatus[] | null;
+  /** Why Docker could not be read, when it is switched on. */
+  dockerError: string | null;
+  checks: ServiceCheckResult[];
+}
+
 /** A path into config.yaml. `{ id }` picks the list item with that id. */
 export type PathSegment = string | number | { id: string };
 

@@ -3,13 +3,21 @@ import { CalendarWidget } from "./CalendarWidget.js";
 import { ClockWidget } from "./ClockWidget.js";
 import { CommuteWidget } from "./CommuteWidget.js";
 import { CountdownsWidget } from "./CountdownsWidget.js";
+import { CpuWidget } from "./CpuWidget.js";
+import { DisksWidget } from "./DisksWidget.js";
 import { LightsWidget } from "./LightsWidget.js";
+import { NetworkWidget } from "./NetworkWidget.js";
 import { RiverWidget } from "./RiverWidget.js";
+import { ServicesWidget } from "./ServicesWidget.js";
 import { SpotifyWidget } from "./SpotifyWidget.js";
 import { SunMoonWidget } from "./SunMoonWidget.js";
 import { TasksWidget } from "./TasksWidget.js";
+import { TempsWidget } from "./TempsWidget.js";
 import { WeatherWidget } from "./WeatherWidget.js";
 import type { WidgetDefinition } from "./types.js";
+
+/** The host stats widgets all read one source, which only exists on Linux. */
+const SYSTEM_HINT = "Reads the Linux server it runs on; see README: Homelab monitoring.";
 
 /**
  * Every widget the dashboard knows how to draw.
@@ -83,6 +91,41 @@ export const widgetRegistry: Record<string, WidgetDefinition> = {
     dataKey: "spotify",
     chrome: true,
     setupHint: "Add SPOTIFY_CLIENT_ID to .env, then choose Connect Spotify in Settings.",
+  },
+  cpu: {
+    type: "cpu",
+    component: CpuWidget as WidgetDefinition["component"],
+    dataKey: "system",
+    chrome: true,
+    setupHint: SYSTEM_HINT,
+  },
+  temps: {
+    type: "temps",
+    component: TempsWidget as WidgetDefinition["component"],
+    dataKey: "system",
+    chrome: true,
+    setupHint: SYSTEM_HINT,
+  },
+  disks: {
+    type: "disks",
+    component: DisksWidget as WidgetDefinition["component"],
+    dataKey: "system",
+    chrome: true,
+    setupHint: SYSTEM_HINT,
+  },
+  network: {
+    type: "network",
+    component: NetworkWidget as WidgetDefinition["component"],
+    dataKey: "system",
+    chrome: true,
+    setupHint: SYSTEM_HINT,
+  },
+  services: {
+    type: "services",
+    component: ServicesWidget as WidgetDefinition["component"],
+    dataKey: "services",
+    chrome: true,
+    setupHint: "Mount the Docker socket (see README: Homelab monitoring) or add URLs under services.checks in config.yaml.",
   },
 };
 

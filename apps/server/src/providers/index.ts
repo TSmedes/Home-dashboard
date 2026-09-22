@@ -1,10 +1,15 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { fetchCalendars, parseFeedUrls, windowFor } from "./calendar/ical.js";
 import { fetchCommute } from "./commute/tomtom.js";
 import { fetchCountdowns } from "./countdowns/index.js";
 import { createLightsAdapter } from "./lights/index.js";
 import { riverGaugesFor } from "@home-dash/shared";
 import { fetchRivers } from "./river/nwps.js";
+import { fetchServices } from "./services/index.js";
+import { socketRequest } from "./services/docker.js";
 import { SpotifyClient, TOKEN_KEY } from "./spotify/client.js";
+import { createHostReader } from "./system/host.js";
 import { createTickTick } from "./tasks/index.js";
 import { fetchWeather } from "./weather/openMeteo.js";
 import type { SourceFactory } from "./types.js";
@@ -120,6 +125,37 @@ export const sourceFactories: SourceFactory[] = [
         key: "spotify",
         intervalMs: config.refresh.spotify * 1000,
         fetch: () => client.read(),
+      };
+    },
+  },
+  {
+    // The machine the dashboard runs on. Only Linux has /proc; anywhere else
+    // (the Windows dev PC) the monitoring widgets say where they work instead.
+    key: "system",
+    create: ({ config, env }) => {
+      if (!existsSync(join(env.HOST_PROC, "stat"))) return null;
+      const reader = createHostReader({ root: env.HOST_ROOT, proc: env.HOST_PROC, sys: env.HOST_SYS }, config.system);
+      return {
+        key: "system",
+        intervalMs: config.refresh.system * 1000,
+        fetch: () => reader.read(),
+      };
+    },
+  },
+  {
+    // Docker containers and URL checks. With no socket and nothing to check,
+    // there is nothing to show; a missing socket alongside checks is reported
+    // in the widget, since in Docker it usually means a forgotten mount.
+    key: "services",
+    create: ({ config, env }) => {
+      const { docker, checks } = config.services;
+      const socket = docker.enabled && (checks.length > 0 || existsSync(env.DOCKER_SOCKET));
+      if (!socket && checks.length === 0) return null;
+      const request = socket ? socketRequest(env.DOCKER_SOCKET) : null;
+      return {
+        key: "services",
+        intervalMs: config.refresh.services * 1000,
+        fetch: () => fetchServices(config.services, request),
       };
     },
   },

@@ -128,6 +128,11 @@
 .widget--countdowns { --tile: var(--tint-countdowns); }
 .widget--commute { --tile: var(--tint-commute); }
 .widget--spotify { --tile: var(--tint-spotify); }
+.widget--cpu,
+.widget--temps,
+.widget--disks,
+.widget--network { --tile: var(--tint-system); }
+.widget--services { --tile: var(--tint-services); }
 
 .widget__head {
   display: flex;
@@ -1887,6 +1892,366 @@
 }
 
 .river__failed {
+  margin: 0;
+  font-size: var(--size-sm);
+  color: var(--ink-3);
+}
+
+/* --- Homelab: shared meter and sparkline ----------------------------------- */
+
+.meter {
+  height: 8px;
+  overflow: hidden;
+  background: var(--track);
+  border-radius: var(--radius-pill);
+}
+
+.meter__fill {
+  height: 100%;
+  background: var(--wet);
+  border-radius: inherit;
+  transition: width 0.6s ease;
+}
+
+.meter[data-level="warn"] .meter__fill { background: var(--caution); }
+.meter[data-level="crit"] .meter__fill { background: var(--warn); }
+
+.spark {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  overflow: visible;
+}
+
+.spark__line {
+  fill: none;
+  stroke: var(--wet);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.spark__area {
+  fill: var(--wet);
+  opacity: 0.12;
+}
+
+/* --- Homelab: CPU and memory ----------------------------------------------- */
+
+.cpu {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  height: 100%;
+  min-height: 0;
+}
+
+.sysstat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 0;
+}
+
+.sysstat__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.sysstat__name {
+  font-size: var(--size-sm);
+  font-weight: 650;
+  color: var(--ink-2);
+}
+
+.sysstat__alert,
+.sysrow__alert {
+  font-size: var(--size-xs);
+  font-weight: 700;
+  color: var(--caution);
+}
+
+[data-level="crit"] > .sysstat__head .sysstat__alert,
+[data-level="crit"] > .sysrow__name .sysrow__alert {
+  color: var(--warn);
+}
+
+.sysstat__value {
+  font-size: clamp(1.8rem, 16cqh, 3rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+}
+
+.sysstat__unit {
+  margin-left: 2px;
+  font-size: 0.5em;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink-2);
+}
+
+.sysstat__spark {
+  flex: 1;
+  min-height: 24px;
+}
+
+.sysstat__detail {
+  font-size: var(--size-xs);
+  line-height: 1.35;
+  color: var(--ink-2);
+}
+
+/* --- Homelab: rows of bars (temperatures, disks) --------------------------- */
+
+.sysrows {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.sysrow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px var(--space-3);
+  align-items: baseline;
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  background: var(--row);
+  border-radius: var(--radius-inner);
+}
+
+.sysrow .meter,
+.sysrow__detail {
+  grid-column: 1 / -1;
+}
+
+.sysrow__name {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--size-base);
+  font-weight: 650;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.sysrow__value {
+  font-size: var(--size-md);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.sysrow__detail {
+  font-size: var(--size-xs);
+  color: var(--ink-2);
+}
+
+/* Temperatures are one line each: name, bar, reading. */
+.sysrows--compact .sysrow {
+  grid-template-columns: minmax(0, 7.5em) minmax(0, 1fr) auto;
+  align-items: center;
+  flex: 1 1 0;
+  max-height: 64px;
+  min-height: 40px;
+  padding: var(--space-2) var(--space-4);
+}
+
+.sysrows--compact .sysrow .meter {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.sysrows--compact .sysrow__name {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  line-height: 1.15;
+}
+
+/* --- Homelab: network ------------------------------------------------------ */
+
+.net {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.net__host {
+  display: flex;
+  flex-direction: column;
+}
+
+.net__name {
+  overflow: hidden;
+  font-size: var(--size-lg);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.net__uptime,
+.net__iface {
+  font-size: var(--size-sm);
+  color: var(--ink-2);
+}
+
+.net__rates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.net__rate {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0 var(--space-2);
+}
+
+.net__key {
+  width: 16px;
+  height: 0;
+  border-top: 2.5px solid var(--wet);
+}
+
+.net__rate--up .net__key {
+  border-top: 2.5px dashed var(--ink-2);
+}
+
+.net__label {
+  font-size: var(--size-xs);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.net__value {
+  grid-column: 1 / -1;
+  font-size: var(--size-md);
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.net__chart {
+  flex: 1;
+  width: 100%;
+  min-height: 24px;
+  overflow: visible;
+}
+
+.net__line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.net__line--down { stroke: var(--wet); }
+.net__line--up { stroke: var(--ink-2); stroke-dasharray: 4 4; }
+
+@container (max-height: 220px) {
+  .net__chart,
+  .net__iface,
+  .sysstat__spark {
+    display: none;
+  }
+}
+
+/* --- Homelab: services ----------------------------------------------------- */
+
+.services {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.services__summary {
+  margin: 0;
+  font-size: var(--size-md);
+  font-weight: 700;
+  color: var(--warn);
+}
+
+.services__summary[data-ok="true"] {
+  color: var(--ink);
+}
+
+.services__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-auto-rows: min-content;
+  gap: var(--space-2);
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.services__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0 var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  background: var(--row);
+  border-radius: var(--radius-inner);
+}
+
+.services__dot {
+  grid-row: span 2;
+  width: 12px;
+  height: 12px;
+  background: var(--good);
+  border-radius: 50%;
+}
+
+.services__row[data-state="warn"] .services__dot { background: var(--caution); }
+.services__row[data-state="down"] .services__dot { background: var(--warn); }
+
+.services__name {
+  overflow: hidden;
+  font-size: var(--size-base);
+  font-weight: 650;
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.services__detail {
+  overflow: hidden;
+  font-size: var(--size-xs);
+  color: var(--ink-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.services__row[data-state="down"] .services__detail { color: var(--warn); font-weight: 600; }
+.services__row[data-state="warn"] .services__detail { color: var(--caution); font-weight: 600; }
+
+.services__note {
   margin: 0;
   font-size: var(--size-sm);
   color: var(--ink-3);

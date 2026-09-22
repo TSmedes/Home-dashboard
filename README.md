@@ -191,6 +191,47 @@ all of them on the day screen's second page.
   Premium**. On a free account the widget says so rather than failing
   silently, and it starts working once the account is upgraded.
 
+## Homelab monitoring
+
+The day screen's third page watches the Linux machine the dashboard runs on.
+No agent and no extra service: numbers come straight from the kernel's
+`/proc` and `/sys`, and container states from the Docker socket.
+
+- **CPU & memory** (`cpu`): usage now, a bar and the last ten minutes, plus
+  load average and swap.
+- **Temperatures** (`temps`): one row per part (CPU, NVMe, drives, board) at
+  its hottest sensor, warm at `system.tempWarn` and hot at `system.tempCrit`
+  (°C in config; shown in the dashboard's units). `options: { limit: 6 }`.
+- **Disks** (`disks`): how full each mount under `system.disks` is, and what
+  is left. Paths are mount points as the host sees them, e.g. `/mnt/media`.
+- **Network** (`network`): host name, uptime, and download/upload on the
+  interface with the default route (or `system.interface`).
+- **Services** (`services`): every Docker container (pick with
+  `services.docker.include` / `exclude`) and every URL under
+  `services.checks`, problems first. A check is up on any 2xx/3xx answer
+  within 5 seconds, or on exactly `expectStatus` if given.
+
+**In Docker** the container would otherwise see only itself, so
+`docker-compose.yml` mounts the host's `/` read-only at `/host` and points
+`HOST_ROOT`, `HOST_PROC` and `HOST_SYS` at it, and mounts the Docker socket.
+The app runs as the unprivileged `node` user, so it needs the host's `docker`
+group to read the socket. Put its id in `.env`:
+
+```sh
+echo "DOCKER_GID=$(getent group docker | cut -d: -f3)" >> .env
+```
+
+The Docker socket is root-equivalent, even mounted `:ro` - anything that can
+talk to it can start a privileged container. The dashboard only ever sends
+`GET /containers/json`, but if that is more trust than you want to give it,
+run [docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy)
+with only `CONTAINERS=1`, and remove the socket mount. (Pointing
+`DOCKER_SOCKET` at a TCP proxy is not supported yet; the services widget can
+then use URL checks only by setting `services.docker.enabled: false`.)
+
+**Not in Docker**, run directly on the host, nothing needs setting. On
+Windows or macOS the four stats widgets say they need the Linux server.
+
 ## Settings
 
 The gear in the top-left corner opens settings. It covers:

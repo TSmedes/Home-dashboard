@@ -20,10 +20,12 @@ describe("config.example.yaml", async () => {
 
   it("puts the new widgets on a second day page and leaves night on one", () => {
     const pages = (profile: string) => new Set(config.profiles[profile]!.widgets.map((w) => w.page));
-    expect([...pages("day")]).toEqual([1, 2]);
+    expect([...pages("day")]).toEqual([1, 2, 3]);
     expect([...pages("night")]).toEqual([1]);
     const second = config.profiles.day!.widgets.filter((w) => w.page === 2).map((w) => w.type);
     expect(second).toEqual(["river", "sunmoon", "bins", "countdowns", "commute", "spotify"]);
+    const third = config.profiles.day!.widgets.filter((w) => w.page === 3).map((w) => w.type);
+    expect(third).toEqual(["cpu", "temps", "network", "disks", "services"]);
   });
 
   it("keeps each page inside the grid", () => {
@@ -49,6 +51,8 @@ profiles:
     expect(config.bins).toEqual([]);
     expect(config.river.gauges).toEqual(["SQUW1"]);
     expect(config.commute.destinations).toEqual([]);
+    expect(config.system.disks).toEqual([{ path: "/", name: "System" }]);
+    expect(config.services.docker.enabled).toBe(true);
     expect(config.countdowns.calendarTag).toBe("#countdown");
     expect(config.profiles.day!.returnToFirstPage).toBe(120);
   });
@@ -61,6 +65,17 @@ profiles:
 
   it("rejects a date that is not YYYY-MM-DD", () => {
     const result = DashboardConfigSchema.safeParse({ ...base, countdowns: { items: [{ name: "X", date: "31/10/2026" }] } });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects duplicate service checks", () => {
+    const check = { id: "a", name: "A", url: "http://nas.local" };
+    const result = DashboardConfigSchema.safeParse({ ...base, services: { checks: [check, check] } });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a disk that is not a mount point", () => {
+    const result = DashboardConfigSchema.safeParse({ ...base, system: { disks: [{ path: "mnt", name: "M" }] } });
     expect(result.success).toBe(false);
   });
 

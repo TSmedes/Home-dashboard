@@ -19,6 +19,22 @@ services:
       - ./config:/app/config
       # SQLite: OAuth tokens and the cache that repopulates the screen on boot.
       - ./data:/app/data
+      # Homelab monitoring: the host, read-only, so CPU, memory, disks and
+      # temperatures are the host's rather than this container's.
+      - /:/host:ro,rslave
+      # Container states for the services widget. Root-equivalent even :ro;
+      # see "Homelab monitoring" in the README before keeping it.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    environment:
+      HOST_ROOT: /host
+      HOST_PROC: /host/proc
+      HOST_SYS: /host/sys
+
+    # The app runs as `node`; the host's docker group lets it read the socket.
+    # Set DOCKER_GID in .env (getent group docker | cut -d: -f3).
+    group_add:
+      - "${DOCKER_GID:-999}"
 
     # Kasa bulbs work fine on the default bridge network as long as each bulb's
     # address is listed in config.yaml. Only Kasa's broadcast *discovery* needs
