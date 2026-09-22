@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CalendarEvent } from "@home-dash/shared";
-import { buildAgenda, eventSpan } from "./agenda.js";
+import { buildAgenda, buildLater, eventSpan } from "./agenda.js";
 
 const LA = "America/Los_Angeles";
 // Monday 21 September 2026, noon in Los Angeles.
@@ -168,5 +168,72 @@ describe("eventSpan", () => {
   it("says how long an all-day event runs", () => {
     expect(eventSpan(allDay("Holiday", "2026-09-21", "2026-09-22"), LA, "12h")).toBe("All day");
     expect(eventSpan(allDay("Trip", "2026-09-26", "2026-09-29"), LA, "12h")).toBe("All day · 3 days");
+  });
+});
+
+describe("buildLater", () => {
+  const later = (events: CalendarEvent[], days = 7, daysAhead = 62) =>
+    buildLater(events, NOON_MON, LA, days, daysAhead, "12h");
+
+  it("starts the day after the agenda's last, so nothing is listed twice", () => {
+    // days: 7 covers Mon 21 to Sun 27; Later begins on Mon 28.
+    const items = later([
+      timed("Inside", "2026-09-27T16:00:00Z", "2026-09-27T17:00:00Z"),
+      timed("Beyond", "2026-09-28T16:00:00Z", "2026-09-28T17:00:00Z"),
+    ]);
+    expect(items.map((i) => i.event.title)).toEqual(["Beyond"]);
+  });
+
+  it("dates each event shortly enough for a narrow tile", () => {
+    const items = later([
+      timed("Flight", "2026-10-02T16:00:00Z", "2026-10-02T18:00:00Z"),
+      allDay("Birthday", "2026-09-28", "2026-09-29"),
+    ]);
+    expect(items.map((i) => [i.date, i.event.title])).toEqual([
+      ["Sep 28", "Birthday"],
+      ["Oct 2", "Flight"],
+    ]);
+  });
+
+  it("stops at the edge of what the feed covers", () => {
+    const items = later(
+      [
+        timed("Just inside", "2026-11-21T16:00:00Z", "2026-11-21T17:00:00Z"),
+        timed("Past the end", "2026-11-23T16:00:00Z", "2026-11-23T17:00:00Z"),
+      ],
+      7,
+      62,
+    );
+    expect(items.map((i) => i.event.title)).toEqual(["Just inside"]);
+  });
+
+  it("carries a time for a timed event and says All day for the others", () => {
+    const items = later([
+      timed("Standup", "2026-10-01T16:00:00Z", "2026-10-01T17:00:00Z"),
+      allDay("Trip", "2026-10-03", "2026-10-06"),
+    ]);
+    expect(items[0]!.when).toEqual({ kind: "at", time: "9:00", meridiem: "am" });
+    expect(items[1]!.when).toEqual({ kind: "allDay" });
+  });
+
+  it("lists a long event once, on the day it starts", () => {
+    const items = later([allDay("Trip", "2026-10-03", "2026-10-08")]);
+    expect(items).toHaveLength(1);
+    expect(items[0]!.date).toBe("Oct 3");
+  });
+
+  it("follows the tile's own days option, not a fixed week", () => {
+    const events = [timed("Thursday", "2026-09-24T16:00:00Z", "2026-09-24T17:00:00Z")];
+    expect(later(events, 7).map((i) => i.event.title)).toEqual([]);
+    expect(later(events, 2).map((i) => i.event.title)).toEqual(["Thursday"]);
+  });
+
+  it("orders by when it starts", () => {
+    const items = later([
+      timed("Third", "2026-10-09T16:00:00Z", "2026-10-09T17:00:00Z"),
+      timed("First", "2026-09-29T16:00:00Z", "2026-09-29T17:00:00Z"),
+      timed("Second", "2026-10-02T16:00:00Z", "2026-10-02T17:00:00Z"),
+    ]);
+    expect(items.map((i) => i.event.title)).toEqual(["First", "Second", "Third"]);
   });
 });

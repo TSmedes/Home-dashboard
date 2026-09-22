@@ -661,6 +661,30 @@
   list-style: none;
 }
 
+/* Takes whatever height the listed days left behind, and no more: its box is
+   set by the card, not by how many events are in it, which is what lets the
+   list be measured against a fixed edge without the measurement moving it. */
+.agenda__later {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.agenda__later-items {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Set apart from the day names above it: this heading is a category, not a day. */
+.agenda__label--later {
+  font-size: var(--size-xs);
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 .agenda__item {
   display: grid;
   grid-template-columns: 4.3em minmax(0, 1fr);
@@ -2294,6 +2318,31 @@
 
 .services__row[data-state="down"] .services__detail { color: var(--warn); font-weight: 600; }
 .services__row[data-state="warn"] .services__detail { color: var(--caution); font-weight: 600; }
+
+/* A compose stack: one cell of the tile's grid, holding its summary row and
+   whichever of its containers need a look. */
+.services__group > .services__list {
+  display: flex;
+  flex: initial;
+  flex-direction: column;
+  gap: 2px;
+  overflow: visible;
+}
+
+/* Members are listed under the stack's own row, set back and quieter, so the
+   stack still reads as one thing. */
+.services__row[data-nested="true"] {
+  margin-left: var(--space-5);
+  padding-top: var(--space-1);
+  padding-bottom: var(--space-1);
+  background: transparent;
+}
+
+.services__row[data-nested="true"] .services__name {
+  font-size: var(--size-sm);
+  font-weight: 550;
+  color: var(--ink-2);
+}
 
 .services__note {
   margin: 0;

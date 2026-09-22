@@ -40,7 +40,7 @@ refresh:
 # Which calendars appear is set by the secret iCal addresses in .env
 # (CALENDAR_ICAL_URLS), not here - each address is a credential.
 calendar:
-  daysAhead: 7
+  daysAhead: 62
 
 # Tasks are read from, and quick-added to, this TickTick list. Who each task is
 # assigned to comes from the list's members in TickTick; nothing to fill in.
@@ -162,6 +162,9 @@ profiles:
         type: weather
         grid: { col: 5, row: 1, colSpan: 8, rowSpan: 2 }
 
+      # days is how many days are listed one by one. Anything further off goes
+      # under "Later" as a dated list, filling whatever room is left on the
+      # card - so a taller tile shows more without being told to.
       - id: agenda
         type: calendar
         grid: { col: 1, row: 3, colSpan: 5, rowSpan: 4 }

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { healthOf, listContainers, mapContainer, type DockerContainer } from "./docker.js";
+import { healthOf, listContainers, mapContainer, publishedPorts, type DockerContainer } from "./docker.js";
 import { runCheck } from "./httpChecks.js";
 import { fetchServices } from "./index.js";
 
@@ -24,6 +24,32 @@ describe("docker", () => {
 
   it("strips the leading slash Docker puts on names", () => {
     expect(mapContainer(CONTAINERS[0]!).name).toBe("jellyfin");
+  });
+
+  it("keeps only published ports, once each, lowest first", () => {
+    expect(
+      publishedPorts([
+        { IP: "0.0.0.0", PrivatePort: 80, PublicPort: 8080, Type: "tcp" },
+        // The same binding on IPv6: the address you type is the same.
+        { IP: "::", PrivatePort: 80, PublicPort: 8080, Type: "tcp" },
+        { PrivatePort: 9000, Type: "tcp" }, // internal only
+        { IP: "0.0.0.0", PrivatePort: 53, PublicPort: 53, Type: "udp" },
+      ]),
+    ).toEqual([
+      { host: 53, container: 53, protocol: "udp" },
+      { host: 8080, container: 80, protocol: "tcp" },
+    ]);
+  });
+
+  it("has no ports and no project when Docker sends neither", () => {
+    expect(publishedPorts()).toEqual([]);
+    expect(mapContainer(CONTAINERS[0]!)).toMatchObject({ ports: [], project: null });
+  });
+
+  it("reads the compose project off the labels", () => {
+    const raw: DockerContainer = { Names: ["/firefly_iii_core"], Labels: { "com.docker.compose.project": "firefly" } };
+    expect(mapContainer(raw).project).toBe("firefly");
+    expect(mapContainer({ ...raw, Labels: { "com.docker.compose.project": "" } }).project).toBeNull();
   });
 
   it("lists every container by name, filtered by include and exclude", async () => {
