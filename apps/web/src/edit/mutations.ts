@@ -1,6 +1,6 @@
 import { GRID_COLUMNS, type WidgetInstance } from "@home-dash/shared";
 import { groupWidgets } from "../components/layout.js";
-import { blocksOf, canPlace, freeRectFor, freeRunIn, rowsOf, type Block, type Rect } from "./grid.js";
+import { blocksOf, canPlace, clampResize, freeRectFor, freeRunIn, rowsOf, type Block, type Rect } from "./grid.js";
 
 /**
  * Every way edit mode changes a profile's widgets.
@@ -102,6 +102,49 @@ function pageBlocks(widgets: WidgetInstance[], page: number, without = ""): Bloc
 /** Put a widget at a rectangle. Moving and resizing are the same edit. */
 export function placeWidget(widgets: WidgetInstance[], id: string, rect: Rect): WidgetInstance[] {
   return withWidget(widgets, id, (w) => withGrid(w, rect));
+}
+
+/** The rectangle a widget occupies. */
+const rectOf = (widget: WidgetInstance): Rect => ({
+  col: widget.grid.col ?? 1,
+  row: widget.grid.row,
+  colSpan: widget.grid.colSpan,
+  rowSpan: widget.grid.rowSpan,
+});
+
+/**
+ * Grow or shrink a widget, as far as its own page allows.
+ *
+ * Scoping to the page is the whole point of it living here. Measured against
+ * the profile's entire list instead, a widget sitting at the same coordinates
+ * on page 2 counts as being in the way - and on a dashboard with three pages
+ * that means nothing can ever grow, while the buttons, measuring the page
+ * correctly, still look like they would work.
+ */
+export function resizeWidget(
+  widgets: WidgetInstance[],
+  id: string,
+  delta: { colSpan?: number; rowSpan?: number },
+): WidgetInstance[] {
+  const widget = widgets.find((w) => w.id === id);
+  if (!widget) return widgets;
+  const here = onPage(widgets, widget.page);
+  const next = clampResize(blocksOf(here), id, rectOf(widget), delta, rowsOf(here));
+  return placeWidget(widgets, id, next);
+}
+
+/** Whether resizing would do anything, so a button never offers what will not happen. */
+export function canResize(
+  widgets: WidgetInstance[],
+  id: string,
+  delta: { colSpan?: number; rowSpan?: number },
+): boolean {
+  const widget = widgets.find((w) => w.id === id);
+  if (!widget) return false;
+  const here = onPage(widgets, widget.page);
+  const rect = rectOf(widget);
+  const next = clampResize(blocksOf(here), id, rect, delta, rowsOf(here));
+  return next.colSpan !== rect.colSpan || next.rowSpan !== rect.rowSpan;
 }
 
 /**

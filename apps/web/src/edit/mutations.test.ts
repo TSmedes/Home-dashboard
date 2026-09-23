@@ -20,8 +20,10 @@ import {
   normaliseStack,
   onPage,
   placeWidget,
+  canResize,
   removePage,
   removeWidget,
+  resizeWidget,
   reorder,
   swapBlocks,
   uniqueStackName,
@@ -351,6 +353,48 @@ describe("reorder", () => {
 
   it("does nothing for a widget in no group", () => {
     expect(reorder(day, "clock", 1)).toEqual(day);
+  });
+});
+
+describe("resizeWidget", () => {
+  it("grows into free space on its own page", () => {
+    const sparse = [widget("clock", { col: 1, row: 1, colSpan: 4, rowSpan: 2 })];
+    expect(grid(valid(resizeWidget(sparse, "clock", { colSpan: 1 })), "clock")).toMatchObject({ colSpan: 5 });
+  });
+
+  it("is not blocked by a widget sitting at the same place on another page", () => {
+    // Pages are separate grids. Measuring against the whole profile is how a
+    // dashboard with three pages ends up unable to grow anything at all.
+    const two = [
+      widget("clock", { col: 1, row: 1, colSpan: 4, rowSpan: 2 }),
+      widget("river", { col: 1, row: 1, colSpan: 12, rowSpan: 6 }, 2),
+    ];
+    expect(canResize(two, "clock", { colSpan: 1 })).toBe(true);
+    expect(grid(valid(resizeWidget(two, "clock", { colSpan: 1 })), "clock")).toMatchObject({ colSpan: 5 });
+  });
+
+  it("stops at a neighbour on the same page", () => {
+    expect(grid(resizeWidget(day, "clock", { colSpan: 1 }), "clock")).toMatchObject({ colSpan: 4 });
+    expect(canResize(day, "clock", { colSpan: 1 })).toBe(false);
+  });
+
+  it("shrinks without needing room", () => {
+    expect(grid(valid(resizeWidget(day, "clock", { colSpan: -1 })), "clock")).toMatchObject({ colSpan: 3 });
+    expect(canResize(day, "clock", { colSpan: -1 })).toBe(true);
+  });
+
+  it("will not shrink below one cell", () => {
+    const one = [widget("clock", { col: 1, row: 1 })];
+    expect(canResize(one, "clock", { colSpan: -1 })).toBe(false);
+    expect(resizeWidget(one, "clock", { colSpan: -1 })).toEqual(one);
+  });
+
+  it("leaves the other pages alone", () => {
+    const two = [
+      widget("clock", { col: 1, row: 1, colSpan: 4, rowSpan: 2 }),
+      widget("river", { col: 1, row: 1, colSpan: 12, rowSpan: 6 }, 2),
+    ];
+    expect(grid(resizeWidget(two, "clock", { colSpan: 1 }), "river")).toEqual(grid(two, "river"));
   });
 });
 

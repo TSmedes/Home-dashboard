@@ -1,8 +1,7 @@
 import type { WidgetInstance } from "@home-dash/shared";
 import { WIDGET_NAMES } from "../widgets/names.js";
 import { EditGrouping } from "./EditGrouping.js";
-import { blocksOf, clampResize, rowsOf } from "./grid.js";
-import { moveToPage, placeWidget, removeWidget } from "./mutations.js";
+import { canResize, moveToPage, removeWidget, resizeWidget } from "./mutations.js";
 
 interface Props {
   /** The page's widgets, which decide how far the selected one can grow. */
@@ -64,23 +63,13 @@ export function EditSelection({ widgets, all, selected, pages, onChange, onRemov
   const name = selected.title || WIDGET_NAMES[selected.type] || selected.type;
   const grouped = selected.grid.share || selected.grid.stack !== undefined;
 
-  const rect = {
-    col: selected.grid.col ?? 1,
-    row: selected.grid.row,
-    colSpan: selected.grid.colSpan,
-    rowSpan: selected.grid.rowSpan,
-  };
-
   const resize = (axis: "colSpan" | "rowSpan") => (delta: -1 | 1) =>
-    onChange((list) => {
-      const next = clampResize(blocksOf(list), selected.id, rect, { [axis]: delta }, rowsOf(list));
-      return placeWidget(list, selected.id, next);
-    });
+    onChange((list) => resizeWidget(list, selected.id, { [axis]: delta }));
 
-  // Ask the same function the button will use whether it would do anything,
-  // so a button is never offered that quietly does nothing.
+  // The button asks the same function it will call whether anything would
+  // happen, so it can never be offered when the answer is no.
   const room = (axis: "colSpan" | "rowSpan", delta: -1 | 1) =>
-    clampResize(blocksOf(widgets), selected.id, rect, { [axis]: delta }, rowsOf(widgets))[axis] !== rect[axis];
+    canResize(widgets, selected.id, { [axis]: delta });
 
   return (
     <div className="edit-selection" role="group" aria-label={`Editing ${name}`}>
@@ -96,16 +85,16 @@ export function EditSelection({ widgets, all, selected, pages, onChange, onRemov
         <>
           <Stepper
             label="Width"
-            value={rect.colSpan}
+            value={selected.grid.colSpan}
             onStep={resize("colSpan")}
-            canShrink={rect.colSpan > 1}
+            canShrink={room("colSpan", -1)}
             canGrow={room("colSpan", 1)}
           />
           <Stepper
             label="Height"
-            value={rect.rowSpan}
+            value={selected.grid.rowSpan}
             onStep={resize("rowSpan")}
-            canShrink={rect.rowSpan > 1}
+            canShrink={room("rowSpan", -1)}
             canGrow={room("rowSpan", 1)}
           />
         </>
