@@ -27,6 +27,22 @@ const lineEnd = (src: string, pos: number) => {
 const isSimple = (value: unknown): value is string | number | boolean =>
   typeof value === "string" || typeof value === "number" || typeof value === "boolean";
 
+/**
+ * A map of plain values, which this file writes on one line: `options: { days: 3 }`.
+ *
+ * Worth recognising because it is how a setting first appears on a widget that
+ * had none. Without it, ticking "show seconds" on the clock could only be
+ * written by re-printing the whole file.
+ */
+const isInlineMap = (value: unknown): value is Record<string, string | number | boolean> =>
+  typeof value === "object" &&
+  value !== null &&
+  !Array.isArray(value) &&
+  Object.keys(value).length > 0 &&
+  Object.values(value).every(isSimple);
+
+const writable = (value: unknown) => value === null || isSimple(value) || isInlineMap(value);
+
 /** Write a value the way the original was written: same quoting where there was one. */
 function render(value: string | number | boolean, like?: Scalar): string {
   if (typeof value !== "string") return String(value);
@@ -43,6 +59,14 @@ function render(value: string | number | boolean, like?: Scalar): string {
   return JSON.stringify(value);
 }
 
+
+/** A value as this file would write it: a scalar, or a map of them on one line. */
+function renderValue(value: string | number | boolean | Record<string, unknown>, like?: Scalar): string {
+  if (isSimple(value)) return render(value, like);
+  const doc = new YamlDocument(value);
+  (doc.contents as { flow?: boolean }).flow = true;
+  return doc.toString({ lineWidth: 0 }).trim();
+}
 
 /**
  * Write a nested map of plain values on one line.
@@ -177,7 +201,7 @@ function editFor(src: string, doc: Document, change: ResolvedChange, order: numb
   const { path, value } = change;
   const key = path.at(-1);
   if (typeof key === "number") return seqEdit(src, doc, change, order, newline);
-  if (typeof key !== "string" || (value !== null && !isSimple(value))) return null;
+  if (typeof key !== "string" || !writable(value)) return null;
 
   const parent = path.length === 1 ? doc.contents : doc.getIn(path.slice(0, -1), true);
   if (!isMap(parent)) return null;
@@ -188,22 +212,28 @@ function editFor(src: string, doc: Document, change: ResolvedChange, order: numb
   if (pair) {
     const node = pair.value;
     const keyRange = (pair.key as Ranged).range;
-    if (!isScalar(node) || !node.range || !keyRange) return null;
+    // A map already written on one line can be replaced the same way a scalar
+    // can; a block one spans lines that are not ours to collapse.
+    const inline = isMap(node) && node.flow;
+    if ((!isScalar(node) && !inline) || !(node as Ranged).range || !keyRange) return null;
+    const range = (node as Ranged).range!;
 
     // Replace just the value's characters; the comment after it is untouched.
-    if (value !== null) return { start: node.range[0], end: node.range[1], text: render(value, node), order };
+    if (value !== null) {
+      return { start: range[0], end: range[1], text: renderValue(value, isScalar(node) ? node : undefined), order };
+    }
 
     if (parent.flow) {
       // `{ a: 1, key: 2 }` -> `{ a: 1 }`: drop the separator with it.
       const previous = (items[index - 1]?.value as Ranged | undefined)?.range;
-      if (previous) return { start: previous[1], end: node.range[1], text: "", order };
+      if (previous) return { start: previous[1], end: range[1], text: "", order };
       const next = (items[index + 1]?.key as Ranged | undefined)?.range;
       return next ? { start: keyRange[0], end: next[0], text: "", order } : null;
     }
     // Block map: remove the key's own line, but only when it has the line to itself.
     const start = lineStart(src, keyRange[0]);
     if (src.slice(start, keyRange[0]).trim() !== "") return null;
-    return { start, end: Math.min(lineEnd(src, node.range[1]) + 1, src.length), text: "", order };
+    return { start, end: Math.min(lineEnd(src, range[1]) + 1, src.length), text: "", order };
   }
 
   if (value === null) return { start: 0, end: 0, text: "", order }; // nothing to remove
@@ -211,13 +241,13 @@ function editFor(src: string, doc: Document, change: ResolvedChange, order: numb
   const firstKey = (items[0]?.key as Ranged | undefined)?.range;
   if (!lastValue || !firstKey) return null;
 
-  if (parent.flow) return { start: lastValue[1], end: lastValue[1], text: `, ${key}: ${render(value)}`, order };
+  if (parent.flow) return { start: lastValue[1], end: lastValue[1], text: `, ${key}: ${renderValue(value)}`, order };
 
   // Block map: a new line after the map's last line, at the map's own indent -
   // before any comment that belongs to whatever comes next.
   const indent = " ".repeat(firstKey[0] - lineStart(src, firstKey[0]));
   const end = lineEnd(src, lastValue[1]);
-  const line = `${indent}${key}: ${render(value)}`;
+  const line = `${indent}${key}: ${renderValue(value)}`;
   return end === src.length
     ? { start: end, end, text: `${newline}${line}`, order }
     : { start: end + 1, end: end + 1, text: `${line}${newline}`, order };
@@ -258,9 +288,12 @@ export function editText(src: string, doc: Document, changes: ResolvedChange[]):
     if (edit.start !== edit.end || edit.text) edits.push(edit);
   }
 
-  // Apply from the end of the file backwards so earlier offsets stay valid;
-  // at the same spot, later changes first, so the text reads in change order.
-  edits.sort((a, b) => b.start - a.start || b.order - a.order);
+  // Apply from the end of the file backwards so earlier offsets stay valid.
+  // Where two edits start at the same spot - a widget removed and another put
+  // in its place - the one that consumes text goes first, or it would overlap
+  // the insertion that has just been made there and the batch would give up.
+  // Otherwise later changes first, so the text reads in change order.
+  edits.sort((a, b) => b.start - a.start || b.end - b.start - (a.end - a.start) || b.order - a.order);
   let text = src;
   let floor = Number.POSITIVE_INFINITY;
   for (const edit of edits) {

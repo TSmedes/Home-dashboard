@@ -162,6 +162,27 @@ describe("configChanges round trip", () => {
     roundTrips(withWidgets(base, next));
   });
 
+  it("writes a widget's first option as one value, not a key under a key", () => {
+    // A widget with no `options:` line still parses as `options: {}`, so
+    // addressing `options.showSeconds` would be a key under one that is not in
+    // the file - and the whole save would re-print.
+    const next = widgetsOf(base).map((w) => (w.id === "clock" ? { ...w, options: { showSeconds: true } } : w));
+    const changes = configChanges(base, withWidgets(base, next));
+    expect(changes).toEqual([
+      { path: ["profiles", "day", "widgets", { id: "clock" }, "options"], value: { showSeconds: true } },
+    ]);
+    roundTrips(withWidgets(base, next));
+  });
+
+  it("takes the options key away when the last one is cleared", () => {
+    const next = widgetsOf(base).map((w) => (w.id === "agenda" ? { ...w, options: {} } : w));
+    const changes = configChanges(base, withWidgets(base, next));
+    expect(changes).toEqual([
+      { path: ["profiles", "day", "widgets", { id: "agenda" }, "options"], value: null },
+    ]);
+    roundTrips(withWidgets(base, next));
+  });
+
   it("gives a widget an option it never had", () => {
     const next = widgetsOf(base).map((w) => (w.id === "clock" ? { ...w, options: { showSeconds: true } } : w));
     roundTrips(withWidgets(base, next));

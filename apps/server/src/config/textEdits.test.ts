@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseDocument } from "yaml";
 import { editText, type ResolvedChange } from "./textEdits.js";
@@ -137,5 +139,72 @@ describe("editText on a block list", () => {
     // The safety net: nothing is written unless the edited text reparses to
     // exactly the intended result.
     expect(edit(WIDGETS, [{ path: at("profiles", "day", "widgets", 9), value: null }])).toBe(null);
+  });
+});
+
+/**
+ * What edit mode actually sends, against the file a fresh install starts from.
+ *
+ * Any one change that cannot be written as text makes the whole save re-print,
+ * which keeps every comment but reflows the ones that were aligned in columns.
+ * That is a one-way loss of someone's formatting, so the shapes edit mode
+ * produces are pinned here: each of these must stay surgical.
+ */
+describe("the shapes a save arrives in", async () => {
+  const examplePath = fileURLToPath(new URL("../../../../config/config.example.yaml", import.meta.url));
+  const src = await readFile(examplePath, "utf8");
+  const day = (parseDocument(src).toJS() as { profiles: Record<string, { widgets: unknown[] }> }).profiles.day!
+    .widgets.length;
+  const grid = { col: 1, row: 7, colSpan: 4, rowSpan: 2 };
+  const fresh = { id: "river-2", type: "river", page: 2, grid };
+
+  const cases: [string, ResolvedChange[]][] = [
+    ["a tile moved", [{ path: at("profiles", "day", "widgets", 0, "grid", "col"), value: 5 }]],
+    ["a tile resized", [{ path: at("profiles", "day", "widgets", 1, "grid", "colSpan"), value: 3 }]],
+    ["a tile switched off", [{ path: at("profiles", "day", "widgets", 0, "enabled"), value: false }]],
+    ["a tile sent to another page", [{ path: at("profiles", "day", "widgets", 0, "page"), value: 2 }]],
+    ["a widget removed", [{ path: at("profiles", "day", "widgets", day - 1), value: null }]],
+    ["a widget added", [{ path: at("profiles", "day", "widgets", day), value: fresh, op: "insert" }]],
+    [
+      "a widget removed and another put in its place",
+      [
+        { path: at("profiles", "day", "widgets", day - 1), value: null },
+        { path: at("profiles", "day", "widgets", day - 1), value: fresh, op: "insert" },
+      ],
+    ],
+    [
+      "the first option on a widget that had none",
+      [{ path: at("profiles", "day", "widgets", 0, "options"), value: { showSeconds: true } }],
+    ],
+    ["another option on one that has some", [{ path: at("profiles", "day", "widgets", 2, "options", "compact"), value: true }]],
+    ["the last option cleared", [{ path: at("profiles", "day", "widgets", 2, "options"), value: null }]],
+    [
+      "a whole session at once",
+      [
+        { path: at("profiles", "day", "widgets", 0, "grid", "col"), value: 5 },
+        { path: at("profiles", "day", "widgets", 0, "options"), value: { showSeconds: true } },
+        { path: at("profiles", "day", "widgets", 1, "grid", "colSpan"), value: 3 },
+        { path: at("profiles", "day", "widgets", day - 1), value: null },
+        { path: at("profiles", "day", "widgets", day - 1), value: fresh, op: "insert" },
+      ],
+    ],
+  ];
+
+  for (const [name, changes] of cases) {
+    it(`edits the file in place for ${name}`, () => {
+      expect(edit(src, changes), name).not.toBe(null);
+    });
+  }
+
+  it("writes a widget's first option the way the file writes one", () => {
+    const next = edit(src, [{ path: at("profiles", "day", "widgets", 0, "options"), value: { showSeconds: true } }])!;
+    expect(next).toContain("options: { showSeconds: true }");
+  });
+
+  it("keeps the column a comment was aligned in", () => {
+    const aligned = src.split("\n").filter((line) => /\S\s{2,}#/.test(line));
+    expect(aligned.length).toBeGreaterThan(0);
+    const next = edit(src, [{ path: at("profiles", "day", "widgets", 0, "grid", "col"), value: 5 }])!;
+    for (const line of aligned) expect(next).toContain(line);
   });
 });

@@ -129,6 +129,28 @@ function diffValue(path: PathSegment[], base: unknown, next: unknown, parts: Par
   }
 
   if (isObject(base) && isObject(next)) {
+    /*
+     * Nothing there before, something there now: write it as one value.
+     *
+     * A widget with no `options:` line at all still parses as `options: {}`,
+     * so a key-by-key diff would address `options.days` under a key that is
+     * not in the file - which cannot be a text edit, and re-prints the whole
+     * thing. Written whole it is one line, the way the file writes it.
+     */
+    if (Object.keys(base).length === 0 && Object.keys(next).length > 0) {
+      parts.fields.push({ path, value: lean(next, path) });
+      return;
+    }
+
+    // And the other way: the last setting cleared takes the key with it, since
+    // `options: {}` is a line that says nothing and reads back as absent
+    // anyway. It also keeps the edit to one line rather than an empty pair of
+    // braces nothing can write.
+    if (Object.keys(next).length === 0 && Object.keys(base).length > 0) {
+      parts.fields.push({ path, value: null });
+      return;
+    }
+
     for (const key of new Set([...Object.keys(base), ...Object.keys(next)])) {
       const here = [...path, key];
       if (!(key in next) || next[key] === undefined) {
