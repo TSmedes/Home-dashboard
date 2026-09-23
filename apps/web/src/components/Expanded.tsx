@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { DashboardConfig, WidgetEnvelope, WidgetInstance } from "@home-dash/shared";
+import { LiveConfigEditor } from "../edit/LiveConfigEditor.js";
 import { WIDGET_NAMES } from "../widgets/names.js";
 import type { WidgetDefinition } from "../widgets/types.js";
 import { WidgetErrorBoundary } from "./ErrorBoundary.js";
@@ -39,6 +40,8 @@ interface Props {
   config: DashboardConfig;
   envelope: WidgetEnvelope<unknown> | null;
   /** The grid cell it grew from, and shrinks back into. */
+  /** What it needs before it has anything to show, when that is the case. */
+  setupHint?: string;
   source: HTMLElement;
   onClosed: () => void;
 }
@@ -52,7 +55,10 @@ interface Props {
  * The tile's own content is hidden meanwhile, so the tint looks like the
  * card itself lifting out of the grid.
  */
-export function ExpandedWidget({ instance, definition, config, envelope, source, onClosed }: Props) {
+export function ExpandedWidget({ instance, definition, config, envelope, setupHint, source, onClosed }: Props) {
+  // Set while its settings sheet is open, so the view does not close itself
+  // out from under someone part-way through adding something.
+  const [editing, setEditing] = useState(false);
   const backdrop = useRef<HTMLDivElement>(null);
   const shell = useRef<HTMLDivElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
@@ -135,8 +141,10 @@ export function ExpandedWidget({ instance, definition, config, envelope, source,
     return () => window.removeEventListener("keydown", onKey);
   }, [close]);
 
-  // Back onto the wall after a spell untouched, like Settings.
+  // Back onto the wall after a spell untouched, like Settings - but not while
+  // someone is part-way through adding a countdown.
   useEffect(() => {
+    if (editing) return;
     let timer = window.setTimeout(() => void close(), IDLE_CLOSE_MS);
     const reset = () => {
       window.clearTimeout(timer);
@@ -148,7 +156,7 @@ export function ExpandedWidget({ instance, definition, config, envelope, source,
       window.clearTimeout(timer);
       for (const type of events) window.removeEventListener(type, reset);
     };
-  }, [close]);
+  }, [close, editing]);
 
   const Detail = definition.detail;
   const title = definition.detailTitle ?? instance.title ?? WIDGET_NAMES[instance.type] ?? instance.type;
@@ -167,10 +175,20 @@ export function ExpandedWidget({ instance, definition, config, envelope, source,
           expanded={{ onClose: () => void close(), closeRef: closeButton }}
         >
           <WidgetErrorBoundary name={`${instance.id} (expanded)`}>
-            <Detail instance={instance} config={config} envelope={envelope as never} />
+            {setupHint ? (
+              <div className="widget-message">
+                <p>Not connected yet.</p>
+                <p className="widget-message__detail">{setupHint}</p>
+              </div>
+            ) : (
+              <Detail instance={instance} config={config} envelope={envelope as never} />
+            )}
           </WidgetErrorBoundary>
         </WidgetFrame>
       </div>
+      {/* Outside the shell, which is clipped while it grows, so the sheet is
+          not clipped with it. */}
+      <LiveConfigEditor instance={instance} definition={definition} onBusy={setEditing} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DashboardConfig, Profile, WidgetEnvelope } from "@home-dash/shared";
 import { widgetFor } from "../widgets/registry.js";
+import { needsSetup } from "./WidgetTile.js";
 import { DashboardGrid } from "./DashboardGrid.js";
 import { ExpandContext, ExpandedWidget } from "./Expanded.js";
 import { visiblePages } from "./pages.js";
@@ -150,6 +151,7 @@ export function Pager({ config, profile, envelopes, availableSources }: Props) {
           definition={{ ...openDefinition, detail: openDefinition.detail }}
           config={config}
           envelope={openDefinition.dataKey ? (envelopes[openDefinition.dataKey] ?? null) : null}
+          setupHint={needsSetup(open, availableSources) ? (openDefinition.setupHint ?? "Run npm run setup to link this account.") : undefined}
           source={expanded.cell}
           onClosed={collapse}
         />

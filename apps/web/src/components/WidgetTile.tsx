@@ -12,10 +12,25 @@ interface Props {
   onExpand?: (from: HTMLElement) => void;
 }
 
-/** Whether a widget can grow to full screen: it has a detail view and data to show in it. */
+/**
+ * Whether a widget can grow to full screen: it has a detail view and something
+ * to show in it.
+ *
+ * A widget whose source is not set up yet can still be worth opening if it
+ * carries its own settings - the commute tile needs somewhere to drive to
+ * before a key is worth getting, and that is edited in there.
+ */
 export function expandable(instance: WidgetInstance, availableSources: string[]): boolean {
   const definition = widgetFor(instance.type);
-  return definition?.detail !== undefined && (!definition.dataKey || availableSources.includes(definition.dataKey));
+  if (!definition?.detail) return false;
+  if (!definition.dataKey || availableSources.includes(definition.dataKey)) return true;
+  return definition.configEditor !== undefined;
+}
+
+/** Whether this widget's data source is not set up. */
+export function needsSetup(instance: WidgetInstance, availableSources: string[]): boolean {
+  const definition = widgetFor(instance.type);
+  return definition?.dataKey !== undefined && !availableSources.includes(definition.dataKey);
 }
 
 /**
@@ -29,7 +44,7 @@ export function expandable(instance: WidgetInstance, availableSources: string[])
 export function WidgetTile({ instance, config, envelopes, availableSources, onExpand }: Props) {
   const definition = widgetFor(instance.type);
   const envelope = definition?.dataKey ? (envelopes[definition.dataKey] ?? null) : null;
-  const needsSetup = definition?.dataKey !== undefined && !availableSources.includes(definition.dataKey);
+  const unconfigured = needsSetup(instance, availableSources);
 
   return (
     <WidgetErrorBoundary name={instance.id}>
@@ -40,7 +55,7 @@ export function WidgetTile({ instance, config, envelopes, availableSources, onEx
             <p className="widget-message__detail">Check the type in config.yaml.</p>
           </div>
         </section>
-      ) : needsSetup ? (
+      ) : unconfigured ? (
         <section className={`widget surface widget--${instance.type}`}>
           {instance.title && (
             <header className="widget__head">
