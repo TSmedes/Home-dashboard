@@ -17,7 +17,7 @@ export const lightRoutes =
   (dashboard: Dashboard): FastifyPluginAsync =>
   async (app: FastifyInstance) => {
     app.post<{ Params: { id: string } }>("/api/lights/:id", async (request, reply) => {
-      const adapter = createLightsAdapter(dashboard.config);
+      const adapter = createLightsAdapter(dashboard.config, dashboard.env);
       if (!adapter) return reply.status(404).send({ error: "no lights configured" });
 
       const command = CommandSchema.safeParse(request.body);

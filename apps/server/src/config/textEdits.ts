@@ -192,6 +192,16 @@ function seqEdit(src: string, doc: Document, change: ResolvedChange, order: numb
 
   const end = Math.min(lineEnd(src, item.range[1]) + 1, src.length);
   if (value === null) return { start, end, text: "", order };
+  // An entry written on one line - a bulb, a destination - is replaced on one
+  // line, each value quoted the way the one it replaces was.
+  if (isMap(item) && item.flow && isInlineMap(value)) {
+    const like = (key: string) => {
+      const pair = (item.items as Pair[]).find((p) => isScalar(p.key) && p.key.value === key);
+      return isScalar(pair?.value) ? pair.value : undefined;
+    };
+    const body = Object.entries(value).map(([key, v]) => `${key}: ${render(v, like(key))}`);
+    return { start, end, text: `${" ".repeat(indent)}- { ${body.join(", ")} }${newline}`, order };
+  }
   const text = renderItem(value, indent, newline);
   return text === null ? null : { start, end, text, order };
 }

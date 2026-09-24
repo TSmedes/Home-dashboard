@@ -51,8 +51,18 @@ const EnvSchema = z.object({
   /** The Docker Engine socket the services widget lists containers from. */
   DOCKER_SOCKET: z.string().default("/var/run/docker.sock"),
 
-  KASA_USERNAME: z.string().optional(),
-  KASA_PASSWORD: z.string().optional(),
+  /**
+   * Pi-hole's app password (Settings > Web interface / API > Expert). It can
+   * change Pi-hole's settings, so it is never put into an error or log line.
+   */
+  PIHOLE_PASSWORD: z.string().optional(),
+
+  /**
+   * The TP-Link account a Tapo bulb was set up with. Tapo bulbs will not take
+   * a command on the LAN without a login keyed by the account password.
+   */
+  TAPO_USERNAME: z.string().optional(),
+  TAPO_PASSWORD: z.string().optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

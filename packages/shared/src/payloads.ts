@@ -131,6 +131,9 @@ export interface LightState {
   colourTemp: number;
   hue: number;
   saturation: number;
+  /** The whites this bulb can make, in kelvin. Optional: older servers never sent them. */
+  minKelvin?: number;
+  maxKelvin?: number;
 }
 
 export interface LightsSnapshot {
@@ -260,8 +263,24 @@ export interface SystemSnapshot {
   disks: SystemDisk[];
   /** Null when no interface could be found. */
   network: SystemNetwork | null;
+  /**
+   * The programs working hardest, busiest first. Null when the host's
+   * processes cannot be read. Optional: older servers never sent it.
+   */
+  processes?: { cpu: SystemProcess[]; memory: SystemProcess[] } | null;
   /** ISO instant the sample was taken. */
   sampledAt: string;
+}
+
+/** Every running process sharing one name, taken together. */
+export interface SystemProcess {
+  name: string;
+  /** How many processes go by this name. */
+  count: number;
+  /** Percent of the whole machine's CPU since the previous sample, 0-100. */
+  cpu: number;
+  /** Resident memory, in bytes. */
+  memory: number;
 }
 
 export interface SystemTemp {
@@ -329,6 +348,55 @@ export interface ServicesSnapshot {
   /** Why Docker could not be read, when it is switched on. */
   dockerError: string | null;
   checks: ServiceCheckResult[];
+}
+
+/** Ten minutes of Pi-hole's day. `at` is the start of the bucket, ISO. */
+export interface PiholeBucket {
+  at: string;
+  total: number;
+  blocked: number;
+}
+
+export interface PiholeCount {
+  name: string;
+  /** A client's address; absent for domains. */
+  ip?: string;
+  count: number;
+}
+
+/** Where answers came from: an upstream resolver, the cache or the blocklist. */
+export interface PiholeUpstream {
+  name: string;
+  ip: string;
+  count: number;
+  /** Average response time, for resolvers Pi-hole actually asked. */
+  responseMs: number | null;
+}
+
+export interface PiholeSnapshot {
+  /** Whether Pi-hole is filtering right now. */
+  blocking: "enabled" | "disabled" | "failed" | "unknown";
+  /** Seconds until blocking switches itself back, when it was paused with a timer. */
+  blockingTimer: number | null;
+  /** Devices that have asked it something recently. */
+  activeClients: number;
+  /** Every device it has seen. */
+  totalClients: number;
+  /** Since local midnight. */
+  queriesToday: number;
+  blockedToday: number;
+  /** blockedToday as a percentage of queriesToday. */
+  percentBlocked: number;
+  domainsOnList: number;
+  /** When the blocklists were last pulled, ISO; null if never. */
+  listsUpdated: string | null;
+  /** Today's ten-minute buckets, oldest first. */
+  history: PiholeBucket[];
+  /** The rest are Pi-hole's own figures over the last 24 hours. */
+  topBlocked: PiholeCount[];
+  topClients: PiholeCount[];
+  upstreams: PiholeUpstream[];
+  uniqueDomains: number;
 }
 
 /** A path into config.yaml. `{ id }` picks the list item with that id. */

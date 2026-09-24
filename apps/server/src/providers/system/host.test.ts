@@ -14,6 +14,8 @@ function put(path: string, text: string): void {
 }
 
 const stat = (busy: number, idle: number) => `cpu  ${busy} 0 0 ${idle} 0 0 0 0 0 0\ncpu0 0 0 0 0\ncpu1 0 0 0 0\n`;
+const pidStat = (pid: number, name: string, utime: number, stime: number, start: number, rss: number) =>
+  `${pid} (${name}) S 0 ${pid} ${pid} 0 -1 0 0 0 0 0 ${utime} ${stime} 0 0 20 0 1 0 ${start} 0 ${rss} 0\n`;
 const netDev = (rx: number, tx: number) =>
   `Inter-| Receive\n face |bytes\n  eth0: ${rx} 0 0 0 0 0 0 0 ${tx} 0 0 0 0 0 0 0\n`;
 
@@ -25,6 +27,9 @@ beforeAll(() => {
   put("proc/uptime", "3700.5 100.0\n");
   put("proc/net/dev", netDev(1000, 500));
   put("proc/net/route", "Iface\tDestination\tGateway\tFlags\tRefCnt\tUse\tMetric\neth0\t00000000\t0\t3\t0\t0\t0\n");
+  put("proc/1/stat", pidStat(1, "init", 10, 10, 1, 100));
+  put("proc/200/stat", pidStat(200, "postgres", 100, 0, 50, 1000));
+  put("proc/self/smaps", "KernelPageSize:        4 kB\n");
   put("etc/hostname", "homelab\n");
   put("sys/class/hwmon/hwmon0/name", "k10temp\n");
   put("sys/class/hwmon/hwmon0/temp1_input", "61250\n");
@@ -46,6 +51,7 @@ describe("createHostReader", () => {
       t += 1000;
       put("proc/stat", stat(150, 950));
       put("proc/net/dev", netDev(3000, 1500));
+      put("proc/200/stat", pidStat(200, "postgres", 120, 5, 50, 1000));
     });
 
     const snapshot = await reader.read();
@@ -56,6 +62,9 @@ describe("createHostReader", () => {
     expect(snapshot.memory.used).toBe(768000);
     expect(snapshot.memory.history).toEqual([75]);
     expect(snapshot.network).toEqual({ iface: "eth0", rxBps: 2000, txBps: 1000, rxHistory: [2000], txHistory: [1000] });
+    // 25 of the 100 ticks that passed across the machine.
+    expect(snapshot.processes?.cpu).toEqual([{ name: "postgres", count: 1, cpu: 25, memory: 1000 * 4096 }]);
+    expect(snapshot.processes?.memory.map((p) => p.name)).toEqual(["postgres", "init"]);
     expect(snapshot.temps).toEqual([
       { label: "CPU", celsius: 61.3 },
       { label: "NVMe", celsius: 39.9 },

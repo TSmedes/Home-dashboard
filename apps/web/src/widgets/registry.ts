@@ -9,6 +9,7 @@ import { CalendarDetail } from "./detail/CalendarDetail.js";
 import { CommuteDetail } from "./detail/CommuteDetail.js";
 import { CountdownsDetail } from "./detail/CountdownsDetail.js";
 import { LightsDetail } from "./detail/LightsDetail.js";
+import { PiholeDetail } from "./detail/PiholeDetail.js";
 import { RiverDetail } from "./detail/RiverDetail.js";
 import { ServicesDetail } from "./detail/ServicesDetail.js";
 import { SunMoonDetail } from "./detail/SunMoonDetail.js";
@@ -18,6 +19,7 @@ import { WeatherDetail } from "./detail/WeatherDetail.js";
 import { DisksWidget } from "./DisksWidget.js";
 import { LightsWidget } from "./LightsWidget.js";
 import { NetworkWidget } from "./NetworkWidget.js";
+import { PiholeWidget } from "./PiholeWidget.js";
 import { RiverWidget } from "./RiverWidget.js";
 import { ServicesWidget } from "./ServicesWidget.js";
 import { SpotifyWidget } from "./SpotifyWidget.js";
@@ -262,6 +264,14 @@ export const widgetRegistry: Record<string, WidgetDefinition> = {
     dataKey: "services",
     chrome: true,
     setupHint: "Mount the Docker socket (see README: Homelab monitoring) or add URLs under services.checks in config.yaml.",
+  },
+  pihole: {
+    type: "pihole",
+    component: PiholeWidget as WidgetDefinition["component"],
+    detail: PiholeDetail as WidgetDefinition["detail"],
+    dataKey: "pihole",
+    chrome: true,
+    setupHint: "Set pihole.url in config.yaml and PIHOLE_PASSWORD in .env.",
   },
 };
 

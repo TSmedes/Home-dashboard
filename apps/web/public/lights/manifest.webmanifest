@@ -1,0 +1,11 @@
+{
+  "name": "Lights",
+  "short_name": "Lights",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F3F3F6",
+  "theme_color": "#F3F3F6",
+  "start_url": "/lights/",
+  "scope": "/lights/",
+  "icons": []
+}

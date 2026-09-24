@@ -874,6 +874,25 @@
   margin-left: 0;
 }
 
+/* The colour the bulb is giving, beside its name; hollow while it is off. */
+.lightsd__glow {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--glow, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--line), 0 0 10px var(--glow, transparent);
+}
+
+.lightsd__modes {
+  align-self: flex-start;
+  margin-top: var(--space-1);
+}
+
+.lightsd__modes .segmented__option:disabled {
+  opacity: 0.4;
+}
+
 /* Each preset carries a hint of the white it gives. */
 .lightsd__white {
   padding: 0 14px;
@@ -887,11 +906,82 @@
   margin-right: 8px;
   vertical-align: -1px;
   border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: inset 0 0 0 1px var(--line);
 }
 
-.lightsd__white[data-kelvin="2700"]::before { background: #f5b36b; }
-.lightsd__white[data-kelvin="4000"]::before { background: #f6e3c0; }
-.lightsd__white[data-kelvin="6500"]::before { background: #d6e6ff; }
+.lightsd__colours {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* 44px: a fingertip, not a pixel. The ring says which one is showing. */
+.lightsd__colour {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: transform 120ms ease;
+}
+
+.lightsd__colour[aria-pressed="true"] {
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--ink);
+}
+
+.lightsd__colour:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.lightsd__colour:disabled {
+  opacity: 0.4;
+}
+
+.light__caption {
+  flex: none;
+  width: 5.5em;
+  font-size: var(--size-sm);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+/* The track shows what the slider does: warm to cool, round the rainbow, grey to full colour. */
+.lightsd__slider--warmth { --track-fill: linear-gradient(to right, var(--from), var(--to)); }
+.lightsd__slider--hue {
+  --track-fill: linear-gradient(
+    to right,
+    hsl(0 100% 50%), hsl(60 100% 50%), hsl(120 100% 50%), hsl(180 100% 50%),
+    hsl(240 100% 50%), hsl(300 100% 50%), hsl(360 100% 50%)
+  );
+}
+.lightsd__slider--saturation { --track-fill: linear-gradient(to right, #fff, var(--to)); }
+
+.lightsd__slider input[type="range"]::-webkit-slider-runnable-track {
+  background: var(--track-fill);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.lightsd__slider input[type="range"]::-moz-range-track {
+  background: var(--track-fill);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.lightsd__slider input[type="range"]::-moz-range-progress {
+  background: transparent;
+}
+
+.lightsd__slider input[type="range"]:disabled {
+  opacity: 0.45;
+}
+
+.lightsd__slider input[type="range"]::-webkit-slider-thumb {
+  border-color: var(--ink);
+}
+
+.lightsd__slider input[type="range"]::-moz-range-thumb {
+  border-color: var(--ink);
+}
 
 /* --- River ------------------------------------------------------------------ */
 
@@ -996,10 +1086,11 @@
   height: 100%;
 }
 
+/* CPU and the processes behind it on top, the three smaller panels below. */
 .sysd__panels {
   display: grid;
   flex: 1;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   grid-template-rows: minmax(260px, 1fr) minmax(260px, 1fr);
   gap: var(--space-4);
   min-height: 0;
@@ -1015,12 +1106,186 @@
   background: var(--row);
   border-radius: var(--radius-inner);
   container-type: size;
+  grid-column: span 2;
+}
+
+.sysd__panel--cpu,
+.sysd__panel--procs {
+  grid-column: span 3;
 }
 
 .sysd__body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+}
+
+.sysprocs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.sysprocs__title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--size-sm);
+  font-weight: 650;
+  color: var(--ink-2);
+}
+
+.sysprocs__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sysprocs__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--size-sm);
+}
+
+.sysprocs__name {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sysprocs__count,
+.sysprocs__empty {
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.sysprocs__empty {
+  margin: 0;
+  font-size: var(--size-sm);
+}
+
+.sysprocs__value {
+  flex: none;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+/* --- Pi-hole ----------------------------------------------------------------- */
+
+.piholed__status {
+  font-size: var(--size-lg);
+}
+
+.piholed__timer {
+  font-size: var(--size-md);
+  font-weight: 550;
+}
+
+.piholed__chart {
+  position: relative;
+  height: 220px;
+  padding-bottom: 22px;
+}
+
+.piholed__chart svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--row);
+  border-radius: var(--radius-inner);
+}
+
+.piholed__bar { fill: var(--track); }
+.piholed__bar--blocked { fill: var(--wet); }
+
+.piholed__tick {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  font-size: var(--size-xs);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.piholed__top {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  font-size: var(--size-xs);
+  color: var(--ink-3);
+}
+
+.piholed__legend {
+  color: var(--ink-3);
+}
+
+.piholed__legend b {
+  font-weight: 650;
+  color: var(--wet);
+}
+
+.piholed__columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-5);
+}
+
+.piholed__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.piholed__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  column-gap: var(--space-3);
+  padding: 10px 16px 12px;
+  overflow: hidden;
+  background: var(--row);
+  border-radius: var(--radius-inner);
+}
+
+.piholed__name {
+  overflow: hidden;
+  font-weight: 600;
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.piholed__ip,
+.piholed__ms {
+  font-size: var(--size-xs);
+  color: var(--ink-3);
+}
+
+.piholed__count {
+  grid-column: 3;
+  font-size: var(--size-sm);
+  font-weight: 650;
+  color: var(--ink-2);
+}
+
+/* Each row's share of the busiest, as a thin rule along its foot. */
+.piholed__share {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--wet);
+  opacity: 0.55;
 }
 
 .servd__list {
@@ -1255,6 +1520,12 @@
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: none;
     grid-auto-rows: 280px;
+  }
+
+  .sysd__panel,
+  .sysd__panel--cpu,
+  .sysd__panel--procs {
+    grid-column: auto;
   }
 }
 

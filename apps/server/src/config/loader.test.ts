@@ -224,6 +224,24 @@ describe("ConfigStore.patch", () => {
     expect(await readFile(path, "utf8")).toContain("# The agenda sits under the clock.");
   });
 
+  it("reorders bulbs by writing two neighbours into each other's places", async () => {
+    const path = await tempConfig(RICH_YAML);
+    const store = await ConfigStore.open(path);
+    const [first, second] = store.current.lights;
+
+    await store.patch([
+      { path: ["lights", 0], value: { id: second!.id, name: second!.name, host: second!.host } },
+      { path: ["lights", 1], value: { id: first!.id, name: first!.name, host: first!.host } },
+    ]);
+
+    expect(store.current.lights.map((light) => light.id)).toEqual([second!.id, first!.id]);
+    const written = await readFile(path, "utf8");
+    expect(written.indexOf(`id: ${second!.id}`)).toBeLessThan(written.indexOf(`id: ${first!.id}`));
+    expect(written).not.toContain("hidden:");
+    // Still one line per bulb, as the file is written by hand.
+    expect(written).toContain('  - { id: back-patio, name: "Back patio light", host: 10.0.0.237 }\n  - { id: front-door');
+  });
+
   it("edits a bulb inside a one-line entry without rewriting its neighbours", async () => {
     const path = await tempConfig(RICH_YAML);
     const store = await ConfigStore.open(path);

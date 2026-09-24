@@ -1,0 +1,218 @@
+/* ---------------------------------------------------------------------------
+   The phone app at /lights/. Reuses the wall's bulb cards and controls; what
+   is here is the page around them. Unlike the wall, this page scrolls.
+--------------------------------------------------------------------------- */
+
+html,
+body,
+#root {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
+
+body {
+  overscroll-behavior-y: auto;
+  /* The wall cross-fades day into night; a phone opening in dark mode would
+     flash light for most of a second instead. */
+  transition: none;
+}
+
+.lapp {
+  --gutter: max(16px, env(safe-area-inset-left), env(safe-area-inset-right));
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 var(--gutter) max(var(--space-6), env(safe-area-inset-bottom));
+}
+
+.lapp__header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0 calc(-1 * var(--gutter));
+  padding: max(var(--space-3), env(safe-area-inset-top)) var(--gutter) var(--space-3);
+  background: var(--ground);
+  border-bottom: var(--edge-width) solid var(--line);
+}
+
+.lapp__titlebar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.lapp__home {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-left: -10px;
+  color: var(--ink-2);
+  border-radius: var(--radius-pill);
+}
+
+.lapp__home:active {
+  background: var(--press);
+}
+
+.lapp__title {
+  margin: 0;
+  font-size: var(--size-lg);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.lapp__connection {
+  font-size: var(--size-xs);
+  font-weight: 600;
+  color: var(--warn);
+}
+
+.lapp__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+}
+
+.lapp__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.lapp__summary {
+  margin: 0;
+  font-size: var(--size-md);
+  font-weight: 650;
+}
+
+.lapp__all {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* The wall's cards sit on a tinted tile; here they are the tiles. One column
+   on a phone, as many as fit on anything wider. */
+.lapp__grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+}
+
+.lapp__grid .lightsd__card {
+  background: var(--tint-lights);
+  border-radius: var(--radius-tile);
+  padding: 14px 18px 18px;
+}
+
+.lapp__grid .light__caption {
+  width: 5em;
+}
+
+.lapp__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-6) 0;
+  text-align: center;
+}
+
+/* Floats above the page, clear of the home indicator. */
+.lapp__notice {
+  position: fixed;
+  left: 50%;
+  bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  z-index: 3;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--size-sm);
+  font-weight: 600;
+  color: var(--now-ink);
+  background: var(--now-fill);
+  border-radius: var(--radius-inner);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  transform: translateX(-50%);
+}
+
+.lapp__notice[data-tone="error"] {
+  background: var(--warn);
+  color: #fff;
+}
+
+/* --- Manage ---------------------------------------------------------------- */
+
+.lmanage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lmanage__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: var(--edge-width) solid var(--edge);
+  border-radius: var(--radius-inner);
+}
+
+.lmanage__row[data-hidden="true"] .field {
+  color: var(--ink-3);
+}
+
+.lmanage__main {
+  display: flex;
+  flex: 1 1 220px;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.lmanage__detail {
+  padding-left: 18px;
+  font-size: var(--size-xs);
+  color: var(--ink-3);
+}
+
+.lmanage__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.lmanage__order {
+  display: flex;
+  gap: 2px;
+}
+
+.lmanage__move {
+  width: 44px;
+  height: 44px;
+  font-size: var(--size-md);
+  color: var(--ink-2);
+  background: var(--ground);
+  border-radius: var(--radius-pill);
+}
+
+.lmanage__move:disabled {
+  opacity: 0.3;
+}
+
+.lmanage__move:active:not(:disabled) {
+  background: var(--press);
+}

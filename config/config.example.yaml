@@ -53,13 +53,15 @@ calendar:
 ticktick:
   listName: "🏡To-Do"
 
-# Kasa bulbs. Reserve a static IP for each in your router: container networking
-# cannot use Kasa's broadcast discovery, so the address must be written down.
+# Kasa and Tapo bulbs. Reserve a static IP for each in your router: container
+# networking cannot use broadcast discovery, so the address must be written down.
+# Tapo bulbs need type: tapo, and TAPO_USERNAME / TAPO_PASSWORD in .env.
 # Add hidden: true to keep a bulb off the dashboard (settings does this for you).
 lights: []
 # lights:
 #   - { id: living, name: "Living Room", host: 192.168.1.50 }
 #   - { id: bedroom, name: "Bedroom", host: 192.168.1.51 }
+#   - { id: porch, name: "Porch", host: 192.168.1.52, type: tapo }
 
 # Bin collections for the bin-day widget. `day` is sun..sat. For a bin
 # collected every other week, set `every: 2` and give any date it was (or will
@@ -132,6 +134,14 @@ services:
   # checks:
   #   - { id: jellyfin, name: "Jellyfin", url: "http://10.0.0.78:8096/health" }
   #   - { id: router, name: "Router", url: "http://10.0.0.1" }
+  #   - { id: pihole, name: "Pi-hole", url: "http://10.0.0.2/admin/login" }
+
+# Pi-hole v6, for the pihole widget: whether it is blocking, how many devices
+# use it and what it has blocked today. The app password (Pi-hole > Settings >
+# Web interface / API > Expert) goes in .env as PIHOLE_PASSWORD. From inside
+# Docker, use the host's LAN address rather than localhost.
+# pihole:
+#   url: "http://10.0.0.2"
 
 # ---------------------------------------------------------------------------
 # Profiles. Each is an independent dashboard - its own widgets, layout and

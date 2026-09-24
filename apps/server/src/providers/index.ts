@@ -5,6 +5,7 @@ import { fetchCommute } from "./commute/tomtom.js";
 import { fetchCountdowns } from "./countdowns/index.js";
 import { createLightsAdapter } from "./lights/index.js";
 import { riverGaugesFor } from "@home-dash/shared";
+import { createPihole } from "./pihole/index.js";
 import { fetchRivers } from "./river/nwps.js";
 import { fetchServices } from "./services/index.js";
 import { socketRequest } from "./services/docker.js";
@@ -61,8 +62,8 @@ export const sourceFactories: SourceFactory[] = [
   },
   {
     key: "lights",
-    create: ({ config }) => {
-      const adapter = createLightsAdapter(config);
+    create: ({ config, env }) => {
+      const adapter = createLightsAdapter(config, env);
       if (!adapter) return null;
       return {
         key: "lights",
@@ -156,6 +157,19 @@ export const sourceFactories: SourceFactory[] = [
         key: "services",
         intervalMs: config.refresh.services * 1000,
         fetch: () => fetchServices(config.services, request),
+      };
+    },
+  },
+  {
+    // Pi-hole running anywhere on the network, the homelab host included.
+    key: "pihole",
+    create: ({ config, env }) => {
+      if (!config.pihole.url || !env.PIHOLE_PASSWORD) return null;
+      const pihole = createPihole({ url: config.pihole.url, password: env.PIHOLE_PASSWORD });
+      return {
+        key: "pihole",
+        intervalMs: config.refresh.pihole * 1000,
+        fetch: () => pihole.read(config.location.timezone),
       };
     },
   },

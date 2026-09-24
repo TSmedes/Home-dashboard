@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type CSSProperties, useState } from "react";
 import type { LightsSnapshot } from "@home-dash/shared";
 import type { WidgetProps } from "./types.js";
 
@@ -6,6 +6,9 @@ export interface LightCommand {
   on?: boolean;
   brightness?: number;
   colourTemp?: number;
+  /** Sent together; the bulb needs both to leave white mode. */
+  hue?: number;
+  saturation?: number;
 }
 
 /**
@@ -15,17 +18,24 @@ export interface LightCommand {
  */
 export function useLightCommands() {
   const [pending, setPending] = useState<Record<string, LightCommand>>({});
+  // The wall ignores this - the poll corrects the display shortly - but the
+  // phone app says why a tap did nothing.
+  const [error, setError] = useState<{ id: string; message: string } | null>(null);
 
   const send = async (id: string, command: LightCommand) => {
     setPending((prev) => ({ ...prev, [id]: { ...prev[id], ...command } }));
     try {
-      await fetch(`/api/lights/${id}`, {
+      const response = await fetch(`/api/lights/${encodeURIComponent(id)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(command),
       });
-    } catch {
-      // The poll will correct the display shortly; nothing useful to say here.
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        setError({ id, message: body.error ?? `the server returned ${response.status}` });
+      }
+    } catch (cause) {
+      setError({ id, message: cause instanceof Error ? cause.message : String(cause) });
     } finally {
       setPending((prev) => {
         const next = { ...prev };
@@ -35,7 +45,7 @@ export function useLightCommands() {
     }
   };
 
-  return { pending, send };
+  return { pending, send, error, clearError: () => setError(null) };
 }
 
 export function LightsWidget({ envelope }: WidgetProps<LightsSnapshot>) {
@@ -94,10 +104,54 @@ export function Dimmer({
   value,
   disabled,
   onCommit,
+  caption,
 }: {
   value: number;
   disabled: boolean;
   onCommit: (value: number) => void;
+  caption?: string;
+}) {
+  return (
+    <CommitSlider
+      label="Brightness"
+      caption={caption}
+      min={1}
+      max={100}
+      value={value}
+      disabled={disabled}
+      onCommit={onCommit}
+      format={(shown) => `${shown}%`}
+    />
+  );
+}
+
+/** A slider that holds its value while dragged and commits once, on release. */
+export function CommitSlider({
+  label,
+  caption,
+  min,
+  max,
+  step = 1,
+  value,
+  disabled,
+  onCommit,
+  format,
+  className,
+  style,
+}: {
+  label: string;
+  /** Shown above the slider; the tile has no room for it, the full screen does. */
+  caption?: string;
+  min: number;
+  max: number;
+  step?: number;
+  value: number;
+  disabled: boolean;
+  onCommit: (value: number) => void;
+  format: (value: number) => string;
+  className?: string;
+  /** Custom properties for the track, such as a gradient's ends. */
+  style?: Record<`--${string}`, string>;
 }) {
   const [draft, setDraft] = useState<number | null>(null);
   const shown = draft ?? value;
@@ -108,20 +162,22 @@ export function Dimmer({
   };
 
   return (
-    <label className="light__dim">
+    <label className={className ? `light__dim ${className}` : "light__dim"} style={style as CSSProperties}>
+      {caption && <span className="light__caption">{caption}</span>}
       <input
         type="range"
-        min={1}
-        max={100}
-        value={shown}
+        min={min}
+        max={max}
+        step={step}
+        value={Math.min(max, Math.max(min, shown))}
         disabled={disabled}
         onChange={(event) => setDraft(Number(event.target.value))}
         onPointerUp={commit}
         onTouchEnd={commit}
         onKeyUp={commit}
-        aria-label="Brightness"
+        aria-label={label}
       />
-      <span className="light__percent tnum">{shown}%</span>
+      <span className="light__percent tnum">{format(shown)}</span>
     </label>
   );
 }

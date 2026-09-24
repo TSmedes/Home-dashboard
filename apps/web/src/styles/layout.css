@@ -146,6 +146,7 @@
 .widget--disks,
 .widget--network { --tile: var(--tint-system); }
 .widget--services { --tile: var(--tint-services); }
+.widget--pihole { --tile: var(--tint-services); }
 
 .widget__head {
   display: flex;
@@ -1185,6 +1186,12 @@
   color: var(--ink);
   background: var(--ground);
   border-radius: var(--radius-pill);
+}
+
+a.button {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
 }
 
 .button--primary {
@@ -2240,6 +2247,77 @@
   .net__chart,
   .net__iface,
   .sysstat__spark {
+    display: none;
+  }
+}
+
+/* --- Homelab: Pi-hole ------------------------------------------------------ */
+
+.pihole {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.pihole__status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--size-md);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.pihole__status[data-state="down"] { color: var(--warn); }
+
+.pihole__dot {
+  width: 12px;
+  height: 12px;
+  background: var(--good);
+  border-radius: 50%;
+}
+
+.pihole__status[data-state="down"] .pihole__dot { background: var(--warn); }
+
+.pihole__figures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  flex: 1;
+  align-content: center;
+}
+
+.pihole__figure {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pihole__label {
+  font-size: var(--size-xs);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.pihole__value {
+  font-size: var(--size-lg);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.pihole__sub,
+.pihole__foot {
+  font-size: var(--size-sm);
+  color: var(--ink-2);
+}
+
+@container (max-height: 220px) {
+  .pihole__foot {
     display: none;
   }
 }

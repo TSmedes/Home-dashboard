@@ -75,6 +75,10 @@ export class Dashboard {
     this.#syncSources(deps.configStore.current);
   }
 
+  get env(): Env {
+    return this.#deps.env;
+  }
+
   get config(): DashboardConfig {
     return this.#deps.configStore.current;
   }

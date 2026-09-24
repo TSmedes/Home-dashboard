@@ -98,6 +98,12 @@ export const LightSchema = z.object({
   name: z.string().min(1),
   /** Reserved LAN address. Discovery by broadcast does not work from a container. */
   host: z.string().min(1),
+  /**
+   * Which of TP-Link's protocols the bulb speaks: kasa for the Kasa range
+   * (KL135 and friends), tapo for Tapo bulbs, which need the TP-Link account
+   * password in .env.
+   */
+  type: z.enum(["kasa", "tapo"]).default("kasa"),
   /** Hidden from the dashboard, and not polled. */
   hidden: z.boolean().default(false),
 });
@@ -240,6 +246,15 @@ export const ServicesSchema = z.object({
     .refine((c) => new Set(c.map((x) => x.id)).size === c.length, { message: "duplicate check id" }),
 });
 
+/**
+ * Pi-hole, read through its v6 API. The password is a credential, so it lives
+ * in .env as PIHOLE_PASSWORD; only the address is here.
+ */
+export const PiholeSchema = z.object({
+  /** Base address of the web interface, e.g. http://10.0.0.2. */
+  url: z.string().url().optional(),
+});
+
 export const ServerSchema = z.object({
   port: z.number().int().min(1).max(65535).default(8080),
 });
@@ -257,6 +272,7 @@ export const RefreshSchema = z.object({
   spotify: z.number().int().min(3).default(10),
   system: z.number().int().min(5).default(10),
   services: z.number().int().min(10).default(30),
+  pihole: z.number().int().min(10).default(60),
 });
 
 export const DashboardConfigSchema = z.object({
@@ -273,6 +289,7 @@ export const DashboardConfigSchema = z.object({
   commute: CommuteSchema.default({}),
   system: SystemSchema.default({}),
   services: ServicesSchema.default({}),
+  pihole: PiholeSchema.default({}),
   profiles: z
     .record(z.string(), ProfileSchema)
     .refine((p) => Object.keys(p).length > 0, { message: "at least one profile is required" }),
@@ -289,5 +306,6 @@ export type CountdownConfig = z.infer<typeof CountdownSchema>;
 export type CommuteDestination = z.infer<typeof CommuteDestinationSchema>;
 export type SystemDiskConfig = z.infer<typeof SystemDiskSchema>;
 export type ServiceCheck = z.infer<typeof ServiceCheckSchema>;
+export type PiholeConfig = z.infer<typeof PiholeSchema>;
 export type DashboardConfig = z.infer<typeof DashboardConfigSchema>;
 export type ProfileName = string;

@@ -93,10 +93,29 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           {config.lights.length > 0 && <LightsSection config={config} save={save} />}
           <WidgetsSection config={config} active={activeProfile} save={save} onClose={onClose} />
           <SpotifySection setNotice={setNotice} />
+          <AppsSection />
           <StatusSection connection={connection} />
         </div>
       </div>
     </div>
+  );
+}
+
+/** The other app on this server, and the way back to choosing between them. */
+function AppsSection() {
+  return (
+    <Section title="Apps">
+      <Row label="Lights" detail="Full control of every bulb, made for a phone.">
+        <a className="button" href="/lights/">
+          Open
+        </a>
+      </Row>
+      <Row label="Switch app" detail="Choose what this screen opens, and whether it always does.">
+        <a className="button" href="/?choose">
+          Choose
+        </a>
+      </Row>
+    </Section>
   );
 }
 

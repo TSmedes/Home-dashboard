@@ -27,7 +27,10 @@ git clone <this repo> && cd home-dash
 docker compose up -d
 ```
 
-Open `http://<your-server>:8080`. The clock and weather work immediately — they
+Open `http://<your-server>:8080`. The page there asks which app to open: the
+**wall dashboard** (`/kiosk/`) or **Lights** (`/lights/`). Tick "Always open
+this on this device" and that device skips the question from then on; open
+`/?choose` to ask again. The clock and weather work immediately — they
 need no credentials. Set your location in `config/config.yaml`; it reloads as
 soon as you save.
 
@@ -339,10 +342,22 @@ iPad at it while working.
   docker buildx build --platform linux/amd64,linux/arm64 -t home-dash .
   ```
 
+## The lights app
+
+`http://<your-server>:8080/lights/` is a phone-sized app just for the bulbs:
+switch, dim, pick a white or a colour for each one, or everything at once.
+Its **Manage** tab renames bulbs, hides or shows them, and changes their
+order. Those edits go to `config.yaml`, so the wall picks them up straight
+away. Add it to a phone's Home Screen for a separate "Lights" icon. It follows
+the phone's light or dark setting.
+
 ## On the iPad
 
 Open the dashboard in Safari, then Share → **Add to Home Screen**. Launching
-from that icon runs it full-screen with no browser chrome. Guided Access
+from that icon runs it full-screen with no browser chrome. The first launch
+shows the app chooser: tick "Always open this on this device" and choose the
+wall dashboard, and after that the icon goes straight to it. The chooser is
+also under Settings → Apps. Guided Access
 (Settings → Accessibility) locks the iPad to it.
 
 Note that a web page cannot control the iPad's backlight. The night profile

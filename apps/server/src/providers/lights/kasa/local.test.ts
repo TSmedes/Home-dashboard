@@ -31,6 +31,8 @@ describe("mapSysinfo", () => {
       colourTemp: 2700,
       hue: 0,
       saturation: 0,
+      minKelvin: 2500,
+      maxKelvin: 9000,
     });
   });
 

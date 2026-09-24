@@ -6,10 +6,14 @@ import {
   parseLoadavg,
   parseMeminfo,
   parseNetDev,
+  parsePageSize,
+  parseProcessStat,
   parseUptime,
   pickInterface,
   rate,
   summariseSensors,
+  topProcesses,
+  type ProcessStat,
 } from "./procfs.js";
 
 // Captured from a 4-core Debian 12 box, trimmed.
@@ -145,5 +149,89 @@ describe("summariseSensors", () => {
 
   it("drops sensors that are not wired up", () => {
     expect(summariseSensors([{ name: "nct6798", readings: [{ label: null, celsius: -62 }] }])).toEqual([]);
+  });
+});
+
+/** A /proc/[pid]/stat line with the fields topProcesses reads filled in. */
+const pidStat = (pid: number, name: string, utime: number, stime: number, start: number, rss: number) =>
+  `${pid} (${name}) S 1 ${pid} ${pid} 0 -1 4194560 100 0 0 0 ${utime} ${stime} 0 0 20 0 1 0 ${start} 1000000 ${rss} 18446744073709551615 0 0 0 0 0 0 0 0 0 0 0 0 17 0 0 0 0 0 0\n`;
+
+describe("parseProcessStat", () => {
+  it("reads the name, CPU ticks, start time and resident pages", () => {
+    expect(parseProcessStat(pidStat(42, "node", 300, 50, 12345, 2048))).toEqual({
+      name: "node",
+      startTime: 12345,
+      ticks: 350,
+      rssPages: 2048,
+    });
+  });
+
+  it("keeps a name holding spaces and parentheses", () => {
+    expect(parseProcessStat(pidStat(7, "Web Content (x)", 1, 1, 1, 1))?.name).toBe("Web Content (x)");
+  });
+
+  it("refuses text that is not a stat line", () => {
+    expect(parseProcessStat("nonsense")).toBeNull();
+  });
+});
+
+describe("parsePageSize", () => {
+  it("reads the kernel page size in bytes", () => {
+    expect(parsePageSize("Size: 4 kB\nKernelPageSize:       16 kB\nMMUPageSize: 16 kB\n")).toBe(16384);
+    expect(parsePageSize("")).toBeNull();
+  });
+});
+
+describe("topProcesses", () => {
+  const proc = (name: string, ticks: number, rssPages: number, startTime = 1): ProcessStat => ({
+    name,
+    ticks,
+    rssPages,
+    startTime,
+  });
+
+  it("gathers processes by name and ranks them by CPU share and by memory", () => {
+    const before = new Map([
+      ["1:1", proc("postgres", 100, 10)],
+      ["2:1", proc("postgres", 100, 10)],
+      ["3:1", proc("node", 100, 50)],
+      ["4:1", proc("idle", 5, 1)],
+    ]);
+    const after = new Map([
+      ["1:1", proc("postgres", 120, 10)],
+      ["2:1", proc("postgres", 130, 10)],
+      ["3:1", proc("node", 110, 50)],
+      ["4:1", proc("idle", 5, 1)],
+    ]);
+    const top = topProcesses(before, after, 200, 4096, 5);
+    expect(top.cpu).toEqual([
+      { name: "postgres", count: 2, cpu: 25, memory: 20 * 4096 },
+      { name: "node", count: 1, cpu: 5, memory: 50 * 4096 },
+    ]);
+    expect(top.memory.map((p) => p.name)).toEqual(["node", "postgres", "idle"]);
+  });
+
+  it("folds kernel threads into one row and leaves them out of memory", () => {
+    const before = new Map([
+      ["10:1", proc("kworker/0:1-events", 0, 0)],
+      ["11:1", proc("kworker/u8:2", 0, 0)],
+    ]);
+    const after = new Map([
+      ["10:1", proc("kworker/0:1-events", 4, 0)],
+      ["11:1", proc("kworker/u8:2", 6, 0)],
+    ]);
+    const top = topProcesses(before, after, 100, 4096, 5);
+    expect(top.cpu).toEqual([{ name: "kworker", count: 2, cpu: 10, memory: 0 }]);
+    expect(top.memory).toEqual([]);
+  });
+
+  it("counts a process that started since the last sample from now on", () => {
+    const top = topProcesses(new Map(), new Map([["5:9", proc("new", 1000, 1)]]), 100, 4096, 5);
+    expect(top.cpu).toEqual([]);
+  });
+
+  it("keeps to the limit", () => {
+    const many = new Map(Array.from({ length: 10 }, (_, i) => [`${i}:1`, proc(`p${i}`, 0, i + 1)] as const));
+    expect(topProcesses(many, many, 100, 4096, 3).memory.map((p) => p.name)).toEqual(["p9", "p8", "p7"]);
   });
 });

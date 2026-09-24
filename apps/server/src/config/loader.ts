@@ -1,6 +1,6 @@
 import { readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { isScalar, isSeq, parseDocument, type Document } from "yaml";
+import { isMap, isScalar, isSeq, parseDocument, type Document } from "yaml";
 import { editText, inlineScalarMaps, type ResolvedChange } from "./textEdits.js";
 import type { ZodIssue } from "zod";
 import {
@@ -196,7 +196,12 @@ export class ConfigStore {
       const node = doc.getIn(path, true);
       // Mutating the existing scalar keeps its quoting and trailing comment.
       if (isScalar(node) && typeof value !== "object") node.value = value as never;
-      else if (typeof value === "object" && value !== null) doc.setIn(path, ConfigStore.#entry(doc, value, false));
+      else if (typeof value === "object" && value !== null) {
+        const entry = ConfigStore.#entry(doc, value, false);
+        // A one-line entry stays on one line.
+        if (isMap(node) && node.flow && isMap(entry)) entry.flow = true;
+        doc.setIn(path, entry);
+      }
       else doc.setIn(path, value);
     }
     return doc.toString();

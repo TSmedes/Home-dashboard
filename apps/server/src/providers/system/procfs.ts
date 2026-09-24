@@ -1,4 +1,4 @@
-import type { SystemTemp } from "@home-dash/shared";
+import type { SystemProcess, SystemTemp } from "@home-dash/shared";
 
 /**
  * Parsers for the Linux kernel's text interfaces. Each takes the file's text
@@ -168,6 +168,91 @@ export function summariseSensors(chips: SensorChip[]): SystemTemp[] {
     out.push({ label: count === 1 ? base : `${base} ${count}`, celsius: Math.round(hottest * 10) / 10 });
   }
   return out.sort((a, b) => b.celsius - a.celsius);
+}
+
+/** One process from /proc/[pid]/stat. */
+export interface ProcessStat {
+  name: string;
+  /** Distinguishes a process from a later one given the same pid. */
+  startTime: number;
+  /** User plus system time, in clock ticks. */
+  ticks: number;
+  /** Resident set size, in pages. */
+  rssPages: number;
+}
+
+/**
+ * /proc/[pid]/stat. The name is in parentheses and may itself hold spaces or
+ * parentheses, so the fields are counted from the last ")".
+ */
+export function parseProcessStat(text: string): ProcessStat | null {
+  const open = text.indexOf("(");
+  const close = text.lastIndexOf(")");
+  if (open === -1 || close < open) return null;
+  // Field 3 (state) is the first after the name, so field n is at n - 3.
+  const fields = text.slice(close + 1).trim().split(/\s+/);
+  const utime = Number(fields[11]);
+  const stime = Number(fields[12]);
+  const startTime = Number(fields[19]);
+  const rssPages = Number(fields[21]);
+  if ([utime, stime, startTime, rssPages].some(Number.isNaN)) return null;
+  return { name: text.slice(open + 1, close), startTime, ticks: utime + stime, rssPages: Math.max(rssPages, 0) };
+}
+
+/** "KernelPageSize: 4 kB" from /proc/[pid]/smaps, in bytes. */
+export function parsePageSize(smaps: string): number | null {
+  const match = /^KernelPageSize:\s+(\d+) kB/m.exec(smaps);
+  return match ? Number(match[1]) * 1024 : null;
+}
+
+/**
+ * What a program is called, whichever instance: kernel threads carry their
+ * CPU and queue after a slash ("kworker/3:1-events"), which would otherwise
+ * split one thing into dozens of rows.
+ */
+const programName = (name: string) => name.replace(/\/.*$/, "") || name;
+
+/**
+ * The programs using the most CPU and the most memory. Processes are gathered
+ * by name - a browser or a database is many processes, and the wall cares
+ * about the program - with CPU as a share of the whole machine between two
+ * samples, so the rows add up towards the headline figure.
+ *
+ * `totalTicks` is the whole machine's elapsed ticks over the same interval,
+ * from /proc/stat. A process not in `previous` started since, and counts only
+ * from now on.
+ */
+export function topProcesses(
+  previous: Map<string, ProcessStat>,
+  current: Map<string, ProcessStat>,
+  totalTicks: number,
+  pageSize: number,
+  limit: number,
+): { cpu: SystemProcess[]; memory: SystemProcess[] } {
+  const programs = new Map<string, SystemProcess>();
+  for (const [key, proc] of current) {
+    const before = previous.get(key);
+    const ticks = before ? Math.max(proc.ticks - before.ticks, 0) : 0;
+    const name = programName(proc.name);
+    const program = programs.get(name) ?? { name, count: 0, cpu: 0, memory: 0 };
+    program.count += 1;
+    program.cpu += totalTicks > 0 ? (ticks / totalTicks) * 100 : 0;
+    program.memory += proc.rssPages * pageSize;
+    programs.set(name, program);
+  }
+
+  const all = [...programs.values()].map((p) => ({ ...p, cpu: Math.round(clamp(p.cpu, 0, 100) * 10) / 10 }));
+  return {
+    cpu: all
+      .filter((p) => p.cpu > 0)
+      .sort((a, b) => b.cpu - a.cpu || b.memory - a.memory)
+      .slice(0, limit),
+    // Kernel threads hold no memory of their own.
+    memory: all
+      .filter((p) => p.memory > 0)
+      .sort((a, b) => b.memory - a.memory)
+      .slice(0, limit),
+  };
 }
 
 function clamp(n: number, lo: number, hi: number): number {

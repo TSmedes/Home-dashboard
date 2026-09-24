@@ -9,12 +9,16 @@ import {
   parseLoadavg,
   parseMeminfo,
   parseNetDev,
+  parsePageSize,
+  parseProcessStat,
   parseUptime,
   pickInterface,
   rate,
   summariseSensors,
+  topProcesses,
   type CpuTimes,
   type NetCounters,
+  type ProcessStat,
   type SensorChip,
 } from "./procfs.js";
 
@@ -35,6 +39,9 @@ export interface HostPaths {
 /** About ten minutes at the default ten-second refresh. */
 export const HISTORY_LENGTH = 60;
 
+/** Rows in each of the top-processes lists. */
+export const TOP_PROCESSES = 8;
+
 /** On the very first read, how long to wait between the two samples a rate needs. */
 const FIRST_SAMPLE_GAP_MS = 500;
 
@@ -42,6 +49,7 @@ interface Sample {
   at: number;
   cpu: CpuTimes;
   net: Map<string, NetCounters> | null;
+  processes: Map<string, ProcessStat> | null;
 }
 
 export interface HostReader {
@@ -57,11 +65,16 @@ export function createHostReader(
   let previous: Sample | null = null;
   const history = { cpu: [] as number[], memory: [] as number[], rx: [] as number[], tx: [] as number[] };
 
+  let pageSize: Promise<number> | null = null;
+
   const text = (path: string) => readFile(path, "utf8");
 
   async function sample(): Promise<Sample & { cores: number }> {
+    // Processes first and /proc/stat last, so each process's ticks were read
+    // no later than the total they are divided by.
+    const processes = await readProcesses(paths.proc);
     const stat = parseCpuStat(await text(join(paths.proc, "stat")));
-    return { at: now(), cpu: stat.times, cores: stat.cores, net: await readNet(paths.proc) };
+    return { at: now(), cpu: stat.times, cores: stat.cores, net: await readNet(paths.proc), processes };
   }
 
   return {
@@ -73,7 +86,8 @@ export function createHostReader(
       const current = await sample();
       const seconds = (current.at - previous.at) / 1000;
 
-      const [meminfo, load, uptime, temps, disks, hostname, route] = await Promise.all([
+      pageSize ??= readPageSize(paths.proc);
+      const [meminfo, load, uptime, temps, disks, hostname, route, page] = await Promise.all([
         text(join(paths.proc, "meminfo")).then(parseMeminfo),
         text(join(paths.proc, "loadavg")).then(parseLoadavg),
         text(join(paths.proc, "uptime")).then(parseUptime),
@@ -81,6 +95,7 @@ export function createHostReader(
         Promise.all(system.disks.map((d) => readDisk(paths.root, d.path, d.name))),
         system.name ?? readHostname(paths.root),
         readRoute(paths.proc),
+        pageSize,
       ]);
 
       const usage = round1(cpuUsage(previous.cpu, current.cpu));
@@ -100,6 +115,11 @@ export function createHostReader(
         network = { iface, rxBps, txBps, rxHistory: [...history.rx], txHistory: [...history.tx] };
       }
 
+      const processes =
+        current.processes && previous.processes
+          ? topProcesses(previous.processes, current.processes, current.cpu.total - previous.cpu.total, page, TOP_PROCESSES)
+          : null;
+
       previous = current;
       return {
         hostname,
@@ -116,6 +136,7 @@ export function createHostReader(
         temps,
         disks,
         network,
+        processes,
         sampledAt: new Date(current.at).toISOString(),
       };
     },
@@ -154,6 +175,33 @@ async function readRoute(proc: string): Promise<string | null> {
     }
   }
   return null;
+}
+
+/**
+ * Every process on the host, keyed by pid and start time so a pid handed to a
+ * new process is not mistaken for the old one. /proc here is the host's (see
+ * HostPaths), so this is every container's processes too. Null when there is
+ * no process to be read at all. A process can exit between the listing and
+ * the read; it is simply left out.
+ */
+async function readProcesses(proc: string): Promise<Map<string, ProcessStat> | null> {
+  const pids = (await list(proc)).filter((entry) => /^\d+$/.test(entry));
+  const stats = await Promise.all(pids.map((pid) => maybe(join(proc, pid, "stat"))));
+  const out = new Map<string, ProcessStat>();
+  stats.forEach((text, i) => {
+    const stat = text && parseProcessStat(text);
+    if (stat) out.set(`${pids[i]}:${stat.startTime}`, stat);
+  });
+  return out.size > 0 ? out : null;
+}
+
+/**
+ * RSS is counted in pages, which are 4 KB on a PC but 16 KB on a Pi 5. One
+ * kernel, one page size, so the reader's own mappings say what it is.
+ */
+async function readPageSize(proc: string): Promise<number> {
+  const smaps = await maybe(join(proc, "self", "smaps"));
+  return (smaps ? parsePageSize(smaps) : null) ?? 4096;
 }
 
 async function readHostname(root: string): Promise<string> {

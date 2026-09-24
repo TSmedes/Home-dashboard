@@ -1,0 +1,89 @@
+/* The page at "/". Small enough for a phone, calm enough for the wall. */
+
+html,
+body,
+#root {
+  overflow: auto;
+}
+
+/* No day/night cross-fade here: it would flash light on a dark phone. */
+body {
+  transition: none;
+}
+
+.chooser {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 720px;
+  min-height: 100%;
+  margin: 0 auto;
+  padding: max(var(--space-6), env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(var(--space-6), env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  justify-content: center;
+}
+
+.chooser__title {
+  margin: 0;
+  font-size: var(--size-xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.chooser__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chooser__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 150px;
+  padding: var(--space-5);
+  text-align: left;
+  border-radius: var(--radius-tile);
+  transition: transform 120ms ease;
+}
+
+.chooser__card:active {
+  transform: scale(0.98);
+}
+
+.chooser__name {
+  font-size: var(--size-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.chooser__detail {
+  font-size: var(--size-sm);
+  color: var(--ink-2);
+}
+
+.chooser__always {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  font-size: var(--size-base);
+  color: var(--ink-2);
+}
+
+.chooser__always input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--ink);
+}
+
+.chooser__hint {
+  margin: 0;
+  font-size: var(--size-xs);
+  color: var(--ink-3);
+}

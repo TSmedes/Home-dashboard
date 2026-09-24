@@ -16,4 +16,5 @@ export const WIDGET_NAMES: Record<string, string> = {
   disks: "Disks",
   network: "Network",
   services: "Services",
+  pihole: "Pi-hole",
 };

@@ -15,6 +15,7 @@ import { lightRoutes } from "./routes/lights.js";
 import { spotifyRoutes } from "./routes/spotify.js";
 import { taskRoutes } from "./routes/tasks.js";
 import { StreamHub } from "./stream.js";
+import { entryFor } from "./webEntries.js";
 
 const env = loadEnv();
 const app = Fastify({ logger: { level: env.LOG_LEVEL } });
@@ -45,15 +46,18 @@ await app.register(lightRoutes(dashboard));
 await app.register(taskRoutes(dashboard, env));
 await app.register(spotifyRoutes(dashboard, tokens, env));
 
-// Serve the built SPA, falling back to index.html so client routes work.
-// register() is lazy - a try/catch around it would never fire - so the
-// directory is checked up front instead.
+// Serve the built frontend: the chooser at "/", the wall at /kiosk/, the
+// lights app at /lights/. Anything the files do not answer goes to the page
+// that owns that path. register() is lazy - a try/catch around it would never
+// fire - so the directory is checked up front instead.
 const webRoot = fileURLToPath(new URL("../../web/dist", import.meta.url));
 if (existsSync(join(webRoot, "index.html"))) {
-  await app.register(fastifyStatic, { root: webRoot });
+  // redirect: /lights -> /lights/, so the page's relative URLs resolve.
+  await app.register(fastifyStatic, { root: webRoot, redirect: true });
   app.setNotFoundHandler((request, reply) => {
-    if (request.url.startsWith("/api/")) return reply.status(404).send({ error: "not found" });
-    return reply.sendFile("index.html");
+    const entry = entryFor(request.url);
+    if (entry === "api") return reply.status(404).send({ error: "not found" });
+    return reply.sendFile(entry);
   });
 } else {
   app.log.warn(`no built frontend at ${webRoot} - run "npm run build". The API still works.`);

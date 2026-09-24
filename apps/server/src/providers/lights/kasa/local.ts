@@ -54,6 +54,8 @@ export function mapSysinfo(config: LightConfig, sysinfo: KasaSysinfo): LightStat
     colourTemp: active.color_temp ?? 0,
     hue: active.hue ?? 0,
     saturation: active.saturation ?? 0,
+    minKelvin: MIN_KELVIN,
+    maxKelvin: MAX_KELVIN,
   };
 }
 
